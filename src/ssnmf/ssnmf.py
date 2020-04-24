@@ -1,6 +1,5 @@
 import numpy as np
 from numpy import linalg as la
-from scipy.io import loadmat
 
 class SSNMF:
     '''
