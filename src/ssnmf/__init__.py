@@ -12,3 +12,5 @@ __copyright__ = "Copyright (c) 2020, Jamie Haddock"
 
 
 from .example import Example  # noqa: F401
+
+from .ssnmf import SSNMF
