@@ -147,4 +147,27 @@ class SSNMF:
         
         if saveerrs:
             return [errs,reconerrs,classerrs]
+
+    def accuracy(self,**kwargs):
+        '''
+        Check accuracy of supervised model (2) or (3) above.
+        '''
+
+        if self.Y is None:
+            print('Label matrix Y not provided: model is not supervised.')
+            return
+        
+        numdata = np.shape(self.Y)[1]
+
+        #count number of data points which are correctly classified
+        numacc = 0
+        Yhat = self.B @ self.S
+        for i in range(numdata):
+            true_max = np.argmax(self.Y[:,i])
+            approx_max = np.argmax(Yhat[:,i])
+
+            if true_max == approx_max:
+                numacc = numacc + 1
+
+        return numacc/numdata
             
