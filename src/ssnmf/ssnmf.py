@@ -83,6 +83,7 @@ class SSNMF:
             errs = np.empty(numiters) #initialize error array
             reconerrs = np.empty(numiters)
             classerrs = np.empty(numiters)
+            classaccs = np.empty(numiters)
         
         if self.Y is None:
             #if no label matrix provided, train unsupervised model instead
@@ -101,12 +102,13 @@ class SSNMF:
             self.S = np.multiply(np.divide(self.S, np.transpose(self.A) @ self.A @ self.S + self.lam * np.transpose(self.B) @ self.B @ self.S), np.transpose(self.A) @ self.X + self.lam * np.transpose(self.B) @ self.Y)
         
             if saveerrs:
-                errs[i] = la.norm(self.X - self.A @ self.S, 'fro') + self.lam * la.norm(self.Y - self.B @ self.S, 'fro') #save errors
                 reconerrs[i] = la.norm(self.X - self.A @ self.S, 'fro') 
                 classerrs[i] = la.norm(self.Y - self.B @ self.S, 'fro')
+                errs[i] = reconerrs[i]**2 + self.lam * classerrs[i]**2 #save errors
+                classaccs[i] = self.accuracy()
         
         if saveerrs:
-            return [errs,reconerrs,classerrs]
+            return [errs,reconerrs,classerrs,classaccs]
         
     def klsnmfmult(self,**kwargs):
         '''
@@ -120,6 +122,7 @@ class SSNMF:
             errs = np.empty(numiters) #initialize error array
             reconerrs = np.empty(numiters)
             classerrs = np.empty(numiters)
+            classaccs = np.empty(numiters)
         
         if self.Y is None:
             #if no label matrix provided, train unsupervised model instead
@@ -141,12 +144,13 @@ class SSNMF:
             self.S = np.multiply(np.divide(self.S, 2 * np.transpose(self.A) @ self.A @ self.S + self.lam * np.transpose(self.B) @ np.ones((classes,cols))),2 * np.transpose(self.A) @ self.X + self.lam * np.transpose(self.B) @ np.divide(self.Y, self.B @ self.S))
         
             if saveerrs:
-                errs[i] = la.norm(self.X - self.A @ self.S, 'fro') + self.lam * la.norm(self.Y - self.B @ self.S, 'fro') #save errors
                 reconerrs[i] = la.norm(self.X - self.A @ self.S, 'fro') 
-                classerrs[i] = la.norm(self.Y - self.B @ self.S, 'fro')
+                classerrs[i] = self.kldiv()
+                errs[i] = reconerrs[i]**2 + self.lam * classerrs[i] #save errors
+                classaccs[i] = self.accuracy()
         
         if saveerrs:
-            return [errs,reconerrs,classerrs]
+            return [errs,reconerrs,classerrs,classaccs]
 
     def accuracy(self,**kwargs):
         '''
@@ -169,5 +173,19 @@ class SSNMF:
             if true_max == approx_max:
                 numacc = numacc + 1
 
+        #return fraction of correctly classified data points
         return numacc/numdata
-            
+
+    def kldiv(self,**kwargs):
+        '''
+        Check KL-divergence between Y and BS of supervised model (most naturally (3)).
+        '''
+
+        if self.Y is None:
+            print('Label matrix Y not provided: model is not supervised.')
+            return
+
+        #compute divergence
+        Yhat = self.B @ self.S
+        div = np.multiply(self.Y, np.log(np.divide(self.Y+1e-10, Yhat+1e-10))) - self.Y + Yhat
+        return np.sum(np.sum(div))
