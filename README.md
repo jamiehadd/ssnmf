@@ -22,12 +22,27 @@ you through the process.
 
 ## Usage
 
-First, import the 'ssnmf' package.
+First, import the `ssnmf` package and the relevant class `SSNMF`.  We import `numpy` for experimentation. 
 
 ```python
 >>> import ssnmf
+>>> from ssnmf import SSNMF
+>>> import numpy as np
 
 ```
+
+#### Training an unsupervised model
+
+Declare an unsupervised NMF model with data matrix `X` and number of topics `k`.  Run the multiplicative updates method for this unsupervised model for `N` iterations.
+
+```python
+>>> X = np.random.rand(100,100)
+>>> k = 10
+>>> model = SSNMF(X,k)
+>>> N = 100
+>>> model.mult(numiters = N)
+```
+
 
 ## Citing
 If you use our work in an academic setting, please cite our paper:
