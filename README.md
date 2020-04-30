@@ -33,18 +33,33 @@ First, import the `ssnmf` package and the relevant class `SSNMF`.  We import `nu
 
 #### Training an unsupervised model
 
-Declare an unsupervised NMF model with data matrix `X` and number of topics `k`.  Run the multiplicative updates method for this unsupervised model for `N` iterations.  This method tries to minimize the objective function 
-'''math 
-\|X - AS\|_F^2
-'''
+Declare an unsupervised NMF model with data matrix `X` and number of topics `k`.  
 
 ```python
 >>> X = np.random.rand(100,100)
 >>> k = 10
 >>> model = SSNMF(X,k)
+```
+
+You may access the factor matrices initialized in the model, e.g., to check relative reconstruction error ||X-AS||_F/||X||_F.
+
+```python
+>>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')
+```
+
+Run the multiplicative updates method for this unsupervised model for `N` iterations.  This method tries to minimize the objective function `||X-AS||_F`. 
+
+```python
 >>> N = 100
 >>> model.mult(numiters = N)
 ```
+
+This method updates the factor matrices N times.  You can see how much the relative reconstruction error improves.
+
+```python
+>>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')
+```
+
 
 
 ## Citing
