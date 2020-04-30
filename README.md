@@ -33,7 +33,7 @@ First, import the `ssnmf` package and the relevant class `SSNMF`.  We import `nu
 
 #### Training an unsupervised model
 
-Declare an unsupervised NMF model with data matrix `X` and number of topics `k`.  Run the multiplicative updates method for this unsupervised model for `N` iterations.  This method tries to minimize the objective function `$\|X - AS\|_F^2$`.
+Declare an unsupervised NMF model with data matrix `X` and number of topics `k`.  Run the multiplicative updates method for this unsupervised model for `N` iterations.  This method tries to minimize the objective function <code>\|X - AS\|_F^2$</code>.
 
 ```python
 >>> X = np.random.rand(100,100)
