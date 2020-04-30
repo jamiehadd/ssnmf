@@ -20,12 +20,12 @@ This is the preferred method to install SSNMF, as it will always install the mos
 If you don't have [pip](https://pip.pypa.io) installed, these [installation instructions](http://docs.python-guide.org/en/latest/starting/installation/) can guide
 you through the process.
 
-## Quick Start
+## Usage
+
+First, import the 'ssnmf' package.
+
 ```python
->>> from ssnmf import Example
->>> a = Example()
->>> a.get_value()
-10
+>>> import ssnmf
 
 ```
 
