@@ -1,3 +1,4 @@
+\usepackage[hybrid]{markdown}
 # SSNMF
 
 [![PyPI Version](https://img.shields.io/pypi/v/ssnmf.svg)](https://pypi.org/project/ssnmf/)
