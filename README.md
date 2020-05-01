@@ -46,7 +46,7 @@ Declare an unsupervised NMF model with data matrix `X` and number of topics `k`.
 You may access the factor matrices initialized in the model, e.g., to check relative reconstruction error ||X-AS||_F/||X||_F.
 
 ```python
->>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')
+>>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')/np.linalg.norm(model.X,'fro')
 ```
 
 Run the multiplicative updates method for this unsupervised model for `N` iterations.  This method tries to minimize the objective function `||X-AS||_F`. 
@@ -59,7 +59,7 @@ Run the multiplicative updates method for this unsupervised model for `N` iterat
 This method updates the factor matrices N times.  You can see how much the relative reconstruction error improves.
 
 ```python
->>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')
+>>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')/np.linalg.norm(model.X,'fro')
 ```
 
 #### Training a supervised model
@@ -85,7 +85,7 @@ Declare a supervised NMF model with data matrix `X`, number of topics `k`, label
 You may access the factor matrices initialized in the model, e.g., to check relative reconstruction error ||X-AS||_F/||X||_F and classification accuracy.
 
 ```python
->>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')
+>>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')/np.linalg.norm(model.X,'fro')
 >>> acc = model.accuracy()
 ```
 
@@ -126,7 +126,7 @@ Declare a supervised NMF model with data matrix `X`, number of topics `k`, label
 You may access the factor matrices initialized in the model, e.g., to check relative reconstruction error ||X-AS||_F/||X||_F, classification accuracy, and KL-divergence improves.
 
 ```python
->>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')
+>>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')/np.linalg.norm(model.X,'fro')
 >>> acc = model.accuracy()
 >>> div = model.kldiv()
 ```
