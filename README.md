@@ -99,8 +99,8 @@ Run the multiplicative updates method for this supervised model for `N` iteratio
 This method updates the factor matrices N times.  You can see how much the relative reconstruction error and classification accuracy improves.
 
 ```python
->>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')
->>> acc = model.accuracy()
+>>> rel_error = reconerrs[99]/np.linalg.norm(X,'fro')
+>>> acc = classaccs[99]
 ```
 
 #### Training a supervised model with KL-divergence
@@ -141,9 +141,9 @@ Run the multiplicative updates method for this supervised model for `N` iteratio
 This method updates the factor matrices N times.  You can see how much the relative reconstruction error and classification accuracy improves.
 
 ```python
->>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')
->>> acc = model.accuracy()
->>> div = model.kldiv()
+>>> rel_error = reconerrs[99]/np.linalg.norm(X,'fro')
+>>> acc = classaccs[99]
+>>> div = classerrs[99]
 ```
 
 
