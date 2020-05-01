@@ -22,13 +22,15 @@ you through the process.
 
 ## Usage
 
-First, import the `ssnmf` package and the relevant class `SSNMF`.  We import `numpy` for experimentation. 
+First, import the `ssnmf` package and the relevant class `SSNMF`.  We import `numpy` and `scipy' for experimentation. 
 
 ```python
 >>> import ssnmf
 >>> from ssnmf import SSNMF
 >>> import numpy as np
-
+>>> import scipy
+>>> import scipy.sparse as sparse
+>>> import scipy.optimize
 ```
 
 #### Training an unsupervised model
@@ -59,6 +61,48 @@ This method updates the factor matrices N times.  You can see how much the relat
 ```python
 >>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')
 ```
+
+#### Training a supervised model
+
+We begin by generating some synthetic data for testing.
+```python
+>>> label mat = np.concatenate((np.concatenate((np.ones([1,10]),np.zeros([1,30])),axis=1),np.concatenate((np.zeros([1,10]),np.ones([1,10]),np.zeros([1,20])),axis=1),np.concatenate((np.zeros([1,20]),np.ones([1,10]),np.zeros([1,10])),axis=1),np.concatenate((np.zeros([1,30]),np.ones([1,10])),axis=1)))
+>>> B = sparse.random(4,10,density=0.2).toarray()
+>>> S = np.zeros([10,40])
+>>> for i in range(40):
+	S[:,i] = scipy.optimize.nnls(B,Y[:,i])[0]
+>>> A = np.random.rand(40,10)
+>>> X = A @ S
+```
+
+Declare a supervised NMF model with data matrix `X`, number of topics `k`, label matrix `Y`, and weight parameter `lam`.  
+
+```python
+>>> k = 10
+>>> model = SSNMF(X,k,Y = labelmat,lam=100*np.linalg.norm(X,'fro'))
+```
+
+You may access the factor matrices initialized in the model, e.g., to check relative reconstruction error ||X-AS||_F/||X||_F and classification accuracy.
+
+```python
+>>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')
+>>> acc = model.accuracy()
+```
+
+Run the multiplicative updates method for this supervised model for `N` iterations.  This method tries to minimize the objective function `||X-AS||_F^2 + lam ||Y - BS||_F^2`. This also saves the errors and accuracies in each iteration.
+
+```python
+>>> N = 100
+>>> [errs,reconerrs,classerrs,classaccs] = model.snmfmult(numiters = N,saveerrs = True)
+```
+
+This method updates the factor matrices N times.  You can see how much the relative reconstruction error and classification accuracy improves.
+
+```python
+>>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')
+>>> acc = model.accuracy()
+```
+
 
 
 
