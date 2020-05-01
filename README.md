@@ -123,11 +123,12 @@ Declare a supervised NMF model with data matrix `X`, number of topics `k`, label
 >>> model = SSNMF(X,k,Y = labelmat,lam=100*np.linalg.norm(X,'fro'))
 ```
 
-You may access the factor matrices initialized in the model, e.g., to check relative reconstruction error ||X-AS||_F/||X||_F and classification accuracy.
+You may access the factor matrices initialized in the model, e.g., to check relative reconstruction error ||X-AS||_F/||X||_F, classification accuracy, and KL-divergence improves.
 
 ```python
 >>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')
 >>> acc = model.accuracy()
+>>> div = model.kldiv()
 ```
 
 Run the multiplicative updates method for this supervised model for `N` iterations.  This method tries to minimize the objective function `||X-AS||_F^2 + lam D(Y||BS)`. This also saves the errors and accuracies in each iteration.
@@ -142,6 +143,7 @@ This method updates the factor matrices N times.  You can see how much the relat
 ```python
 >>> rel_error = np.linalg.norm(model.X - model.A @ model.S, 'fro')
 >>> acc = model.accuracy()
+>>> div = model.kldiv()
 ```
 
 
