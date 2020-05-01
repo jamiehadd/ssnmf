@@ -146,7 +146,8 @@ This method updates the factor matrices N times.  You can see how much the relat
 
 
 ## Citing
-If you use our work in an academic setting, please cite our paper:
+If you use our code in an academic setting, please consider citing our code.
+<!---Please cite our paper: ... -->
 
 
 
