@@ -66,7 +66,7 @@ This method updates the factor matrices N times.  You can see how much the relat
 
 We begin by generating some synthetic data for testing.
 ```python
->>> label mat = np.concatenate((np.concatenate((np.ones([1,10]),np.zeros([1,30])),axis=1),np.concatenate((np.zeros([1,10]),np.ones([1,10]),np.zeros([1,20])),axis=1),np.concatenate((np.zeros([1,20]),np.ones([1,10]),np.zeros([1,10])),axis=1),np.concatenate((np.zeros([1,30]),np.ones([1,10])),axis=1)))
+>>> labelmat = np.concatenate((np.concatenate((np.ones([1,10]),np.zeros([1,30])),axis=1),np.concatenate((np.zeros([1,10]),np.ones([1,10]),np.zeros([1,20])),axis=1),np.concatenate((np.zeros([1,20]),np.ones([1,10]),np.zeros([1,10])),axis=1),np.concatenate((np.zeros([1,30]),np.ones([1,10])),axis=1)))
 >>> B = sparse.random(4,10,density=0.2).toarray()
 >>> S = np.zeros([10,40])
 >>> for i in range(40):
@@ -107,7 +107,7 @@ This method updates the factor matrices N times.  You can see how much the relat
 
 We begin by generating some synthetic data for testing.
 ```python
->>> label mat = np.concatenate((np.concatenate((np.ones([1,10]),np.zeros([1,30])),axis=1),np.concatenate((np.zeros([1,10]),np.ones([1,10]),np.zeros([1,20])),axis=1),np.concatenate((np.zeros([1,20]),np.ones([1,10]),np.zeros([1,10])),axis=1),np.concatenate((np.zeros([1,30]),np.ones([1,10])),axis=1)))
+>>> labelmat = np.concatenate((np.concatenate((np.ones([1,10]),np.zeros([1,30])),axis=1),np.concatenate((np.zeros([1,10]),np.ones([1,10]),np.zeros([1,20])),axis=1),np.concatenate((np.zeros([1,20]),np.ones([1,10]),np.zeros([1,10])),axis=1),np.concatenate((np.zeros([1,30]),np.ones([1,10])),axis=1)))
 >>> B = sparse.random(4,10,density=0.2).toarray()
 >>> S = np.zeros([10,40])
 >>> for i in range(40):
