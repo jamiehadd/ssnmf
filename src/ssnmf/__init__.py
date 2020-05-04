@@ -10,7 +10,4 @@ __email__ = "jhaddock@math.ucla.edu"
 __license__ = "MIT"
 __copyright__ = "Copyright (c) 2020, Jamie Haddock"
 
-
-from .example import Example  # noqa: F401
-
 from .ssnmf import SSNMF
