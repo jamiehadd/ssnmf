@@ -9,7 +9,7 @@ with open("README.md") as readme_file:
     readme = readme_file.read()
 
 test_requirements = [
-    
+    "scipy",
 ]
 
 docs_requirements = [
@@ -59,6 +59,7 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
@@ -74,7 +75,7 @@ setup(
     name="ssnmf",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
-    python_requires=">=3.6",
+    python_requires=">=3.5",
     setup_requires=setup_requirements,
     test_suite="tests",
     tests_require=test_requirements,
