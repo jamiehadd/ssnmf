@@ -139,6 +139,8 @@ class SSNMF:
             Number of iterations of updates to run (default is 10).
         saveerrs : bool, optional
             Boolean indicating whether to save model errors during iterations.
+        eps : float_, optional
+            Epsilon value to prevent division by zero (default is 1e-10).
 
         Returns
         -------
@@ -147,15 +149,16 @@ class SSNMF:
         '''
         numiters = kwargs.get('numiters', 10)
         saveerrs = kwargs.get('saveerrs', False)
+        eps = kwargs.get('eps', 1e-10)
         
         if saveerrs:
             errs = np.empty(numiters) #initialize error array 
     
         for i in range(numiters):
             #multiplicative updates for A and S
-            self.A = np.multiply(np.divide(self.A,self.A @ self.S @ np.transpose(self.S)), \
+            self.A = np.multiply(np.divide(self.A,eps+ self.A @ self.S @ np.transpose(self.S)), \
                                  self.X @ np.transpose(self.S))
-            self.S = np.multiply(np.divide(self.S,np.transpose(self.A) @ self.A @ self.S), \
+            self.S = np.multiply(np.divide(self.S,eps+ np.transpose(self.A) @ self.A @ self.S), \
                                  np.transpose(self.A) @ self.X)
         
             if saveerrs:
@@ -174,6 +177,8 @@ class SSNMF:
             Number of iterations of updates to run (default is 10).
         saveerrs : bool, optional
             Boolean indicating whether to save model errors during iterations.
+        eps : float_, optional
+            Epsilon value to prevent division by zero (default is 1e-10).
 
         Returns
         -------
@@ -190,6 +195,7 @@ class SSNMF:
         '''
         numiters = kwargs.get('numiters', 10)
         saveerrs = kwargs.get('saveerrs', False)
+        eps = kwargs.get('eps', 1e-10)
     
     
         if saveerrs:
@@ -204,11 +210,11 @@ class SSNMF:
     
         for i in range(numiters):
             #multiplicative updates for A, S, and B
-            self.A = np.multiply(np.divide(self.A,self.A @ self.S @ np.transpose(self.S)), \
+            self.A = np.multiply(np.divide(self.A,eps+ self.A @ self.S @ np.transpose(self.S)), \
                                  self.X @ np.transpose(self.S))
-            self.B = np.multiply(np.divide(self.B, self.B @ self.S @ np.transpose(self.S)), \
+            self.B = np.multiply(np.divide(self.B, eps+ self.B @ self.S @ np.transpose(self.S)), \
                                  self.Y @ np.transpose(self.S))
-            self.S = np.multiply(np.divide(self.S, np.transpose(self.A) @ self.A @ self.S + \
+            self.S = np.multiply(np.divide(self.S, eps+ np.transpose(self.A) @ self.A @ self.S + \
                                 self.lam * np.transpose(self.B) @ self.B @ self.S), \
                                 np.transpose(self.A) @ self.X + self.lam * np.transpose(self.B) \
                                 @ self.Y)
@@ -232,6 +238,8 @@ class SSNMF:
             Number of iterations of updates to run (default is 10).
         saveerrs : bool, optional
             Boolean indicating whether to save model errors during iterations.
+        eps : float_, optional
+            Epsilon value to prevent division by zero (default is 1e-10).
 
         Returns
         -------
@@ -248,6 +256,7 @@ class SSNMF:
         '''
         numiters = kwargs.get('numiters', 10)
         saveerrs = kwargs.get('saveerrs', False)
+        eps = kwargs.get('eps', 1e-10)
     
     
         if saveerrs:
@@ -265,15 +274,15 @@ class SSNMF:
     
         for i in range(numiters):
             #multiplicative updates for A, S, and B
-            self.A = np.multiply(np.divide(self.A,self.A @ self.S @ np.transpose(self.S)), \
+            self.A = np.multiply(np.divide(self.A,eps+ self.A @ self.S @ np.transpose(self.S)), \
                                  self.X @ np.transpose(self.S))
-            self.B = np.multiply(np.divide(self.B,np.ones((classes,cols)) @ np.transpose(self.S)), \
-                                 np.divide(self.Y, self.B @ self.S) @ np.transpose(self.S))
-            self.S = np.multiply(np.divide(self.S, 2 * np.transpose(self.A) @ self.A @ self.S + \
+            self.B = np.multiply(np.divide(self.B,eps+ np.ones((classes,cols)) @ np.transpose(self.S)), \
+                                 np.divide(self.Y, eps+ self.B @ self.S) @ np.transpose(self.S))
+            self.S = np.multiply(np.divide(self.S, eps+ 2 * np.transpose(self.A) @ self.A @ self.S + \
                                            self.lam * np.transpose(self.B) @ \
                                            np.ones((classes,cols))),2 * np.transpose(self.A) \
                                  @ self.X + self.lam * np.transpose(self.B) @ \
-                                 np.divide(self.Y, self.B @ self.S))
+                                 np.divide(self.Y, eps+ self.B @ self.S))
         
             if saveerrs:
                 reconerrs[i] = la.norm(self.X - self.A @ self.S, 'fro') 
@@ -317,17 +326,23 @@ class SSNMF:
         '''
         Compute KL-divergence between Y and BS of supervised model (most naturally (3)).
 
+        Parameters
+        ----------
+        eps : float_, optional
+            Epsilon value to prevent division by zero (default is 1e-10).
+
         Returns
         -------
         kldiv : float_
             KL-divergence between Y and BS.
         '''
+        eps = kwargs.get('eps', 1e-10)
 
         if self.Y is None:
             raise Exception('Label matrix Y not provided: model is not supervised.')
 
         #compute divergence
         Yhat = self.B @ self.S
-        div = np.multiply(self.Y, np.log(np.divide(self.Y+1e-10, Yhat+1e-10))) - self.Y + Yhat
+        div = np.multiply(self.Y, np.log(np.divide(self.Y+eps, Yhat+eps))) - self.Y + Yhat
         kldiv = np.sum(np.sum(div))
         return kldiv
