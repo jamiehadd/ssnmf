@@ -111,7 +111,7 @@ We begin by generating some synthetic data for testing.
 >>> B = sparse.random(4,10,density=0.2).toarray()
 >>> S = np.zeros([10,40])
 >>> for i in range(40):
-	S[:,i] = scipy.optimize.nnls(B,labelmat[:,i])[0]
+...     S[:,i] = scipy.optimize.nnls(B,labelmat[:,i])[0]
 >>> A = np.random.rand(40,10)
 >>> X = A @ S
 ```

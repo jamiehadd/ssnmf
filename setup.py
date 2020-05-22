@@ -10,6 +10,7 @@ with open("README.md") as readme_file:
 
 test_requirements = [
     "scipy",
+    "pytest",
 ]
 
 docs_requirements = [
@@ -30,6 +31,8 @@ dev_requirements = [
     
     "twine>=1.13.0",
     "wheel>=0.33.1",
+
+    "tox>=3.15.0",
 ]
 
 requirements = ["numpy"]
