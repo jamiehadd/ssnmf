@@ -346,3 +346,7 @@ class SSNMF:
         div = np.multiply(self.Y, np.log(np.divide(self.Y+eps, Yhat+eps))) - self.Y + Yhat
         kldiv = np.sum(np.sum(div))
         return kldiv
+
+'''
+To-do: write everything for semi-supervision.
+'''
