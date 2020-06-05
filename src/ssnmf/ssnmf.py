@@ -2,36 +2,36 @@
 # -*- coding: utf-8 -*-
 
 '''
-    Class and functions for training (S)NMF model.
-    
+    Class and functions for training (SS)NMF model.
+
     The NMF model consists of the data matrix to be factorized, X, the factor matrices, A and
     S.  Each model also consists of a label matrix, Y, classification factor matrix, B, and
     classification weight parameter, lam (although these three variables will be empty if Y is not
-    input).  These parameters define the objective function defining the model: 
-    (1) ||X - AS||_F^2 (train with mult) or 
-    (2) ||X - AS||_F^2 + lam * ||Y - BS||_F^2 (train with snmfmult) or 
+    input).  These parameters define the objective function defining the model:
+    (1) ||X - AS||_F^2 (train with mult) or
+    (2) ||X - AS||_F^2 + lam * ||Y - BS||_F^2 (train with snmfmult) or
     (3) ||X - AS||_F^2 + lam * D(Y||BS) (train with klsnmfmult).
 
     Examples
     --------
     unsupervised (1), saving errors, declaring number of iterations
-    
+
     >>> numIters = 100
     >>> model = SSNMF(numpy.random.rand(100,100),10)
     >>> errs = model.mult(saveerrs = True,numiters = numIters)
-    
+
     unsupervised (1), not saving errors, declaring number of iterations
-    
+
     >>> numIters = 100
     >>> model = SSNMF(numpy.random.rand(100,100),10)
     >>> model.mult(numiters = numIters)
-    
-    supervised (2), saving errors, default number of iterations
-    
+
+    semi-supervised (2), saving errors, default number of iterations
+
     >>> model = SSNMF(data['datamat'], 10, Y = data['labelmat'])
     >>> errs = model.snmfmult(saveerrs = True)
-    
-    supervised (3), not saving errors, declaring number of iterations
+
+    semi-supervised (3), not saving errors, declaring number of iterations
 
     >>> numIters = 15
     >>> model = SSNMF(data['datamat'], 10, Y = data['labelmat'])
@@ -42,16 +42,16 @@ import numpy as np
 from numpy import linalg as la
 
 class SSNMF:
-    
+
     """
     Class for (S)NMF model.
-    
+
     The NMF model consists of the data matrix to be factorized, X, the factor matrices, A and
     S.  Each model also consists of a label matrix, Y, classification factor matrix, B, and
     classification weight parameter, lam (although these three variables will be empty if Y is not
-    input).  These parameters define the objective function defining the model: 
-    (1) ||X - AS||_F^2 (train with mult) or 
-    (2) ||X - AS||_F^2 + lam * ||Y - BS||_F^2 (train with snmfmult) or 
+    input).  These parameters define the objective function defining the model:
+    (1) ||X - AS||_F^2 (train with mult) or
+    (2) ||X - AS||_F^2 + lam * ||Y - BS||_F^2 (train with snmfmult) or
     (3) ||X - AS||_F^2 + lam * D(Y||BS) (train with klsnmfmult).
 
     ...
@@ -62,20 +62,24 @@ class SSNMF:
         Data matrix of size m x n.
     k : int_
         Number of topics.
+    Y : array, optional
+        Label matrix of size p x n (default is None).
+    W : array, optional
+        Binary matrix of size p x n, whether the data is observed or not (default is None).
+    L : array, optional
+        Binary matrix of size m x n, whether the label is known or not (default is None).
+    lam : float_, optional
+        Weight parameter for classification term in objective (the default is 1 if Y is not
+        None, None otherwise).
     A : array, optional
         Initialization for left factor matrix of X of size m x k (the default is a matrix with
         uniform random entries).
     S : array, optional
         Initialization for right factor matrix of X of size k x n (the default is a matrix with
         uniform random entries).
-    Y : array, optional
-        Label matrix of size p x n (default is None).
     B : array, optional
         Initialization for left factor matrix of Y of size p x k (the default is a matrix with
         uniform random entries if Y is not None, None otherwise).
-    lam : float_, optional
-        Weight parameter for classification term in objective (the default is 1 if Y is not
-        None, None otherwise).
 
 
     Methods
@@ -83,13 +87,13 @@ class SSNMF:
     mult(numiters = 10, saveerrs = True)
         Train the unsupervised model (1) via numiters multiplicative updates.
     snmfmult(numiters = 10, saveerrs = True)
-        Train the supervised model (2) via numiters multiplicative updates.
+        Train the semi-supervised model (2) via numiters multiplicative updates.
     klsnmfmult(numiters = 10, saveerrs = True)
-        Train the supervised model (3) via numiters multiplicative updates.
+        Train the semi-supervised model (3) via numiters multiplicative updates.
     accuracy()
-        Compute the classification accuracy of supervised model (using Y, B, and S).
+        Compute the classification accuracy of semi-supervised model (using Y, B, and S).
     kldiv()
-        Compute the KL-divergence, D(Y||BS), of supervised model (using Y, B, and S).
+        Compute the KL-divergence, D(Y||BS), of semi-upervised model (using Y, B, and S).
 
     """
     def __init__(self, X, k, **kwargs):
@@ -108,14 +112,14 @@ class SSNMF:
             raise Exception('The column dimension of A is not k.')
         if np.shape(self.S)[0] != k:
             raise Exception('The row dimension of S is not k.')
-        
+
         #supervision initializations (optional)
         self.Y = kwargs.get('Y',None)
         if self.Y is not None:
             #check dimensions of X and Y match
             if np.shape(self.Y)[1] != np.shape(self.X)[1]:
                 raise Exception('The column dimensions of X and Y are not equal.')
-            
+
             classes = np.shape(self.Y)[0]
             self.B = kwargs.get('B',np.random.rand(classes,k))
             self.lam = kwargs.get('lam',1)
@@ -128,7 +132,25 @@ class SSNMF:
         else:
             self.B = None
             self.lam = None
-                       
+
+        # missing data (optional)
+        self.W = kwargs.get('W',None)
+            if self.W is not None:
+                #check dimensions of X and W match
+                if np.shape(self.W)[0] != np.shape(self.X)[0]:
+                    raise Exception('The row dimensions of X and W are not equal.')
+                if np.shape(self.W)[1] != np.shape(self.X)[1]:
+                    raise Exception('The column dimensions of X and W are not equal.')
+
+        # missing labels, semi-supervision (optional)
+        self.L = kwargs.get('L',None)
+                if self.L is not None:
+                    #check dimensions of Y and L match
+                    if np.shape(self.L)[0] != np.shape(self.Y)[0]:
+                        raise Exception('The row dimensions of Y and L are not equal.')
+                    if np.shape(self.L)[1] != np.shape(self.Y)[1]:
+                        raise Exception('The column dimensions of Y and L are not equal.')
+
     def mult(self,**kwargs):
         '''
         Multiplicative updates for training unsupervised NMF model (1).
@@ -150,26 +172,26 @@ class SSNMF:
         numiters = kwargs.get('numiters', 10)
         saveerrs = kwargs.get('saveerrs', False)
         eps = kwargs.get('eps', 1e-10)
-        
+
         if saveerrs:
-            errs = np.empty(numiters) #initialize error array 
-    
+            errs = np.empty(numiters) #initialize error array
+
         for i in range(numiters):
             #multiplicative updates for A and S
             self.A = np.multiply(np.divide(self.A,eps+ self.A @ self.S @ np.transpose(self.S)), \
                                  self.X @ np.transpose(self.S))
             self.S = np.multiply(np.divide(self.S,eps+ np.transpose(self.A) @ self.A @ self.S), \
                                  np.transpose(self.A) @ self.X)
-        
+
             if saveerrs:
                 errs[i] = la.norm(self.X - self.A @ self.S, 'fro') #save reconstruction error
-        
+
         if saveerrs:
             return [errs]
-        
+
     def snmfmult(self,**kwargs):
         '''
-        Multiplicative updates for training supervised NMF model (2).
+        Multiplicative updates for training semi-supervised NMF model (2).
 
         Parameters
         ----------
@@ -196,18 +218,33 @@ class SSNMF:
         numiters = kwargs.get('numiters', 10)
         saveerrs = kwargs.get('saveerrs', False)
         eps = kwargs.get('eps', 1e-10)
-    
-    
+
+
         if saveerrs:
             errs = np.empty(numiters) #initialize error array
             reconerrs = np.empty(numiters)
             classerrs = np.empty(numiters)
             classaccs = np.empty(numiters)
-        
+
         if self.Y is None:
             #if no label matrix provided, train unsupervised model instead
             raise Exception('Label matrix Y not provided: train with mult instead.')
-    
+
+        elif self.W is None and self.L is not None:
+            # semi-supervised learning, without missing data
+            for i in range(numiters):
+                #multiplicative updates for A, S, and B
+                self.A = np.multiply(np.divide(self.A,eps+ self.A @ self.S @ np.transpose(self.S)), \
+                                    self.X @ np.transpose(self.S))
+                self.B = np.multiply(np.divide(self.B, eps+ np.multiply(L,self.B @ self.S) @ np.transpose(self.S)), \
+                                    np.multiply(L,self.Y) @ np.transpose(self.S))
+                self.S = np.multiply(np.divide(self.S, eps+ np.transpose(self.A) @ self.A @ self.S + \
+                                    self.lam * np.transpose(self.B) @ np.multiply(L,self.B @ self.S)), \
+                                    np.transpose(self.A) @ self.X + self.lam * np.transpose(self.B) \
+                                    @ np.multiply(L,self.Y))
+
+
+            
         for i in range(numiters):
             #multiplicative updates for A, S, and B
             self.A = np.multiply(np.divide(self.A,eps+ self.A @ self.S @ np.transpose(self.S)), \
@@ -218,19 +255,19 @@ class SSNMF:
                                 self.lam * np.transpose(self.B) @ self.B @ self.S), \
                                 np.transpose(self.A) @ self.X + self.lam * np.transpose(self.B) \
                                 @ self.Y)
-        
+
             if saveerrs:
-                reconerrs[i] = la.norm(self.X - self.A @ self.S, 'fro') 
+                reconerrs[i] = la.norm(self.X - self.A @ self.S, 'fro')
                 classerrs[i] = la.norm(self.Y - self.B @ self.S, 'fro')
                 errs[i] = reconerrs[i]**2 + self.lam * classerrs[i]**2 #save errors
                 classaccs[i] = self.accuracy()
-        
+
         if saveerrs:
             return [errs,reconerrs,classerrs,classaccs]
-        
+
     def klsnmfmult(self,**kwargs):
         '''
-        Multiplicative updates for training supervised NMF model (3).
+        Multiplicative updates for training semi-supervised NMF model (3).
 
         Parameters
         ----------
@@ -257,21 +294,21 @@ class SSNMF:
         numiters = kwargs.get('numiters', 10)
         saveerrs = kwargs.get('saveerrs', False)
         eps = kwargs.get('eps', 1e-10)
-    
-    
+
+
         if saveerrs:
             errs = np.empty(numiters) #initialize error array
             reconerrs = np.empty(numiters)
             classerrs = np.empty(numiters)
             classaccs = np.empty(numiters)
-        
+
         if self.Y is None:
             #if no label matrix provided, train unsupervised model instead
             raise Exception('Label matrix Y not provided: train with mult instead.')
-                
+
         classes = np.shape(self.Y)[0]
         cols = np.shape(self.Y)[1]
-    
+
         for i in range(numiters):
             #multiplicative updates for A, S, and B
             self.A = np.multiply(np.divide(self.A,eps+ self.A @ self.S @ np.transpose(self.S)), \
@@ -283,19 +320,19 @@ class SSNMF:
                                            np.ones((classes,cols))),2 * np.transpose(self.A) \
                                  @ self.X + self.lam * np.transpose(self.B) @ \
                                  np.divide(self.Y, eps+ self.B @ self.S))
-        
+
             if saveerrs:
-                reconerrs[i] = la.norm(self.X - self.A @ self.S, 'fro') 
+                reconerrs[i] = la.norm(self.X - self.A @ self.S, 'fro')
                 classerrs[i] = self.kldiv()
                 errs[i] = reconerrs[i]**2 + self.lam * classerrs[i] #save errors
                 classaccs[i] = self.accuracy()
-        
+
         if saveerrs:
             return [errs,reconerrs,classerrs,classaccs]
 
     def accuracy(self,**kwargs):
         '''
-        Compute accuracy of supervised model (2) or (3) above.
+        Compute accuracy of semi-supervised model (2) or (3) above.
 
         Returns
         -------
@@ -304,8 +341,8 @@ class SSNMF:
         '''
 
         if self.Y is None:
-            raise Exception('Label matrix Y not provided: model is not supervised.')
-        
+            raise Exception('Label matrix Y not provided: model is not semi-supervised.')
+
         numdata = np.shape(self.Y)[1]
 
         #count number of data points which are correctly classified
@@ -324,7 +361,7 @@ class SSNMF:
 
     def kldiv(self,**kwargs):
         '''
-        Compute KL-divergence between Y and BS of supervised model (most naturally (3)).
+        Compute KL-divergence between Y and BS of semi-supervised model (most naturally (3)).
 
         Parameters
         ----------
@@ -339,7 +376,7 @@ class SSNMF:
         eps = kwargs.get('eps', 1e-10)
 
         if self.Y is None:
-            raise Exception('Label matrix Y not provided: model is not supervised.')
+            raise Exception('Label matrix Y not provided: model is not semi-supervised.')
 
         #compute divergence
         Yhat = self.B @ self.S
@@ -347,6 +384,7 @@ class SSNMF:
         kldiv = np.sum(np.sum(div))
         return kldiv
 
-'''
-To-do: write everything for semi-supervision.
-'''
+
+# TO-DO for all methods: return A,S and B (optional if Y is not None)
+# Add example of W and L for X with missing values and Y with missing labels.
+# Add missing data for mult (or merge with snmmult)
