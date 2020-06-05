@@ -242,9 +242,37 @@ class SSNMF:
                                     self.lam * np.transpose(self.B) @ np.multiply(L,self.B @ self.S)), \
                                     np.transpose(self.A) @ self.X + self.lam * np.transpose(self.B) \
                                     @ np.multiply(L,self.Y))
+                if saveerrs:
+                    reconerrs[i] = la.norm(self.X - self.A @ self.S, 'fro')
+                    classerrs[i] = la.norm(np.multiply(L,self.Y) - np.multiply(L,self.B @ self.S), 'fro')
+                    errs[i] = reconerrs[i]**2 + self.lam * classerrs[i]**2 #save errors
+                    classaccs[i] = self.accuracy()
 
+                if saveerrs:
+                    return [errs,reconerrs,classerrs,classaccs]
 
-            
+        elif self.W is not None and self.L is None:
+            # supervised learning, with missing data
+            for i in range(numiters):
+                #multiplicative updates for A, S, and B
+                self.A = np.multiply(np.divide(self.A,eps+ np.multiply(W, self.A @ self.S) @ np.transpose(self.S)), \
+                                    np.multiply(W,self.X) @ np.transpose(self.S))
+                self.B = np.multiply(np.divide(self.B, eps+ self.B @ self.S @ np.transpose(self.S)), \
+                                    self.Y @ np.transpose(self.S))
+                self.S = np.multiply(np.divide(self.S, eps+ np.transpose(self.A) @ np.multiply(W, self.A @ self.S) + \
+                                    self.lam * np.transpose(self.B) @ self.B @ self.S), \
+                                np.transpose(self.A) @ np.multiply(W, self.X) + self.lam * np.transpose(self.B) \
+                                @ self.Y)
+                if saveerrs:
+                    reconerrs[i] = la.norm(np.multiply(W, self.X) - np.multiply(W, self.A @ self.S), 'fro')
+                    classerrs[i] = la.norm(self.Y - self.B @ self.S, 'fro')
+                    errs[i] = reconerrs[i]**2 + self.lam * classerrs[i]**2 #save errors
+                    classaccs[i] = self.accuracy()
+
+                if saveerrs:
+                    return [errs,reconerrs,classerrs,classaccs]
+
+"""
         for i in range(numiters):
             #multiplicative updates for A, S, and B
             self.A = np.multiply(np.divide(self.A,eps+ self.A @ self.S @ np.transpose(self.S)), \
@@ -258,12 +286,13 @@ class SSNMF:
 
             if saveerrs:
                 reconerrs[i] = la.norm(self.X - self.A @ self.S, 'fro')
-                classerrs[i] = la.norm(self.Y - self.B @ self.S, 'fro')
+                classerrs[i] = la.norm(np.multiply(L,self.Y) - np.multiply(L,self.B @ self.S), 'fro')
                 errs[i] = reconerrs[i]**2 + self.lam * classerrs[i]**2 #save errors
                 classaccs[i] = self.accuracy()
 
         if saveerrs:
             return [errs,reconerrs,classerrs,classaccs]
+"""
 
     def klsnmfmult(self,**kwargs):
         '''
@@ -388,3 +417,4 @@ class SSNMF:
 # TO-DO for all methods: return A,S and B (optional if Y is not None)
 # Add example of W and L for X with missing values and Y with missing labels.
 # Add missing data for mult (or merge with snmmult)
+# Fix accuracy function to accomodate missing labels
