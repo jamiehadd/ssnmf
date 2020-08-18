@@ -27,7 +27,7 @@ class Evaluation:
     k              : int_
                      Number of topics.
     modelNum       : int_
-                     Number indicating which of the (S)SNMF models to train (see ref. below).
+                     Number indicating which of the (S)SNMF models to train (see model numbers below).
     A              : array, optional
                      Initialization for the left factor matrix of the data matrix, shape (#features, k)
                      (the default is a matrix with uniform random entries).
@@ -52,9 +52,9 @@ class Evaluation:
     L              : array, optional
                      Missing label indicator matrix for the training process, shape (#classes, #train samples + #test samples)
                      (the default is matrix of all ones for train data and all zeros for test data).
-    tol            : float_
+    tol            : float_, optional
                      tolerance for termanating the model (default is 1e-4).
-    iter_s         : int_
+    iter_s         : int_, optional
                      Number of iterations of updates to run to approximate the representaion of the test
                      data when the I-divervene a discrepancy measure for data reconstruction (default is 10).
 
@@ -119,11 +119,15 @@ class Evaluation:
 
         self.W_train = kwargs.get('W_train', np.concatenate((np.ones(self.train_features.shape),np.zeros(self.test_features.shape)),axis=1))
         if np.shape(self.W_train)[0] != self.rows:
-            raise Exception('The row dimension W is not equal to the number of features in the data.')
+            raise Exception('The row dimension W_train is not equal to the number of features in the data.')
         if np.shape(self.W_train)[1] != self.cols:
-            raise Exception('The column dimension of W is not equal to the number of samples in the train and test data.')
+            raise Exception('The column dimension of W_train is not equal to the number of samples in the train and test data.')
 
         self.W_test = kwargs.get('W_test', np.ones(self.test_features.shape))
+        if np.shape(self.W_test)[0] != self.rows:
+            raise Exception('The row dimension W_test is not equal to the number of features in the data.')
+        if np.shape(self.W_test)[1] != self.test_features.shape[1]:
+            raise Exception('The column dimension of W_test is not equal to the number of samples in the test data.')
 
         self.L = kwargs.get('L', np.concatenate((np.ones(self.train_labels.shape),np.zeros(self.test_labels.shape)),axis=1))
         if np.shape(self.L)[0] != self.classes:
@@ -142,7 +146,7 @@ class Evaluation:
         Returns:
             train_evals (list): [ndarray(total reconstruction error on train data (model objective function) for each iteration),
                                  ndarray(data reconstruction error on train data for each iteration),
-                                 ndarray (label reconstruction error on train data for each iteration),
+                                 ndarray(label reconstruction error on train data for each iteration),
                                  ndarray(classification accuracy on train data for each iteration)]
             test_evals (list): [float(total reconstruction error on test data (model objective function)),
                                 float(data reconstruction error on test data),
@@ -155,7 +159,7 @@ class Evaluation:
         # Apply (S)SNMF model to test data
         self.S_test = self.test_model() #representation matrix of test data
 
-        # Compute reconstruction errors
+        # Compute reconstruction errors on test data
         test_evals = self.computeErrors()
 
         return train_evals, test_evals
@@ -218,9 +222,134 @@ class Evaluation:
 
         return [errs, reconerrs, classerrs, classaccs]
 
+    def iterativeLocalSearch(self, init_lamb, init_k, init_itas):
+        """
+        This function allows the user to perform an iterative local search in hyperparameter space for
+        a set of [locally] optimal (k,lambda,iterations). This is done by starting with a choice
+        of rank (init_k), iterations (init_itas), and lambda (init_lamb). Then by performing a parameter
+        sweep in a "local search cube", the algorithm can determine if a new choice of (k,lambda,iterations)
+        is advantageous i.e. produces better classification accuracy on validation set.
 
-"""
-TODO/Qs:
-- Incorporate W_test when solving nnls to find S_test?
-- Add hyperparameter search code here (modify based on new ssnmf.py module).
-"""
+        Several hard-coded choices were made to ease the user-required knowledge of the search algorithm itself.
+        These are for example:
+            - The size of the local search box is (k-1 , k+2) x (iter-1, iter+2) x (0.1*lam , 10*lam).
+            - The number of iterations tested uniformly spaced in the interval (iter-1, iter+2), which currently is 2 values.
+            - The number of lambdas tested uniformly spaced in the interval (0.1*lam, 10*lam), which currently is 3 values.
+
+        Args:
+            init_lamb (float): initialization of the regualrizer lambda
+            init_k (int): initialization of the rank
+            init_itas (int): initialization of the number of iterations
+
+        Returns:
+            lamb (float): optimal regualrizer lambda found in the local search
+            ka (int): optimal number of topics found in the local search
+            itas (int): optimal number of iterations found in the local search
+        """
+
+        self.lam = init_lamb
+        self.k = init_k
+        self.numiters = init_itas
+        self.converged = False
+        self.iteration = 1
+
+        if self.k <2:
+            raise Exception('The initialization of the number of topics should be at least 2.')
+
+        if self.numiters <2:
+            raise Exception('The initialization of the number of iterations should be at least 2.')
+
+        # Hyper-hyperparameters
+        self.max_search_iter = 10     # Maximum number of local parameter sweeps performed
+        self.ww              = 0.01   # Threshold for convergence - continue as long as a 0.01% improvement in accuracy.
+
+        # Get the initial error
+        eval_module = Evaluation(train_features = self.train_features, train_labels = self.train_labels,\
+                                test_features = self.test_features, test_labels = self.test_labels,\
+                                modelNum = self.modelNum, k = self.k, lam=self.lam, numiters = self.numiters,\
+                                W_train = self.W_train, W_test= self.W_test,\
+                                L = self.L, tol = self.tol, iter_s = self.iter_s)
+
+        train_evals, test_evals = eval_module.eval()
+        self.cls_last = test_evals[-1]
+
+        print(f"Initial hyperparameters: k = {self.k}, iter = {self.numiters}, and lam = {self.lam}.")
+        print(f"Initial val data reconstruction error = {test_evals[-3]}")
+        print(f"Initial val classification error = {test_evals[-2]}")
+        print(f"Initial val classification accuracy: {test_evals[-1]}")
+
+        while(not self.converged):
+            # Perform a local search on k, itas, and lam
+            best_ka = init_k
+            best_itas = init_itas
+            best_lamb = init_lamb
+            best_local_acc = 0
+
+            for k in range(self.k-1,self.k+2):
+                for it in range(self.numiters-1,self.numiters+2,2):
+                    startl = float(0.1*self.lam)
+                    endl = float(10*self.lam)
+                    la_vals = np.concatenate((np.linspace(startl, endl, num=2), np.array([self.lam])), axis=0)
+                    for la_idx in range(len(la_vals)):
+                        la = la_vals[la_idx]
+                        print(f"Currently testing k = {k}, iteration = {it}, and lambda = {la}")
+                        eval_module = Evaluation(train_features = self.train_features,train_labels = self.train_labels,\
+                                                test_features = self.test_features, test_labels = self.test_labels,\
+                                                modelNum = self.modelNum, k = k, lam=la, numiters = it, \
+                                                W_train = self.W_train, W_test= self.W_test,\
+                                                L = self.L, tol = self.tol, iter_s = self.iter_s)
+                        train_evals, test_evals = eval_module.eval()
+                        if(test_evals[-1] >= best_local_acc):
+                            best_ka = k
+                            best_itas = it
+                            best_lamb = la
+                            best_local_acc = test_evals[-1]
+
+            # Recover the performance of the best (k,lamb,iter) in the local search box
+            eval_module = Evaluation(train_features = self.train_features, train_labels = self.train_labels,\
+                                    test_features = self.test_features, test_labels = self.test_labels,\
+                                    modelNum = self.modelNum, k = best_ka, lam=best_lamb, numiters = best_itas,\
+                                    W_train = self.W_train, W_test= self.W_test,\
+                                    L = self.L, tol = self.tol, iter_s = self.iter_s)
+            train_evals, test_evals = eval_module.eval()
+            cls_current = test_evals[-1]
+
+            # Compare the best performing (k,lamb,iter) with the previous best choice
+            if(cls_current >= (1 + self.ww)*self.cls_last):
+                self.converged  = False
+                self.cls_last = cls_current
+                self.k = best_ka
+                self.numiters = best_itas
+                self.lam = best_lamb
+                self.iteration += 1
+
+                if(self.iteration % 1 == 0):
+                    print("Iteration:",self.iteration)
+                    print("The new selection of hyperparameters: k =", self.k, "; iter =", self.numiters, "; lamb =", self.lam)
+                    print(f"Current val data reconstruction error = {test_evals[-3]}")
+                    print(f"Current val classification (div) error = {test_evals[-2]}")
+                    print(f"Current val classification accuracy: {test_evals[-1]}")
+
+                if self.k  < 2:
+                    self.converged = True
+                    print('The search method stopped because the best number of topics is now less than two.')
+                    return
+                if self.numiters  < 2:
+                    self.converged = True
+                    print('The search method stopped because the best number of iterations is now less than two.')
+                    return
+
+            elif(self.iteration > self.max_search_iter):
+                self.converged = True
+                print("The maximum number of search iterations is reached. The set of hyperparameters found are:")
+                print("k =", self.k, "; iter =", self.numiters, "; lamb =", self.lam)
+
+            else:
+                self.converged = True
+                print("Converged!")
+                print("The set of hyperparameters found at convergence were:")
+                print("k =", self.k, "; iter =", self.numiters, "; lam =", self.lam)
+                print(f"Final val classification accuracy: {self.cls_last}")
+
+
+        return self.lam, self.k, self.numiters
