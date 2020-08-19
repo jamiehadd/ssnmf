@@ -36,7 +36,7 @@ class Evaluation:
                      shape (k, #train samples), (the default is a matrix with uniform random entries).
     B              : array, optional
                      Initialization for left factor matrix of the train label matrix, shape (#classes, k),
-                     (the default is a matrix with uniform random entries if Y is not None, None otherwise).
+                     (the default is a matrix with uniform random entries).
     lam            : float_, optional
                      Weight parameter for classification term in objective (the default is 1).
     numiters       : int_,optional
@@ -53,9 +53,9 @@ class Evaluation:
                      Missing label indicator matrix for the training process, shape (#classes, #train samples + #test samples)
                      (the default is matrix of all ones for train data and all zeros for test data).
     tol            : float_, optional
-                     tolerance for termanating the model (default is 1e-4).
+                     tolerance for terminating the model (default is 1e-4).
     iter_s         : int_, optional
-                     Number of iterations of updates to run to approximate the representaion of the test
+                     Number of iterations of updates to run to approximate the representation of the test
                      data when the I-divervene a discrepancy measure for data reconstruction (default is 10).
 
 
@@ -78,7 +78,13 @@ class Evaluation:
     iterativeLocalSearch()
         Perform an iterative local search in hyperparameter space for a set of (locally) optimal (k,lambda,iterations).
 
+
+    Usage
+    ----------
+
+
     """
+
 
     def __init__(self, train_features, train_labels, test_features, test_labels, modelNum, k, **kwargs):
         self.train_features = train_features
@@ -137,7 +143,7 @@ class Evaluation:
 
         self.model = ssnmf2.SSNMF(X = np.concatenate((self.train_features, self.test_features), axis = 1), k = self.k, \
                                         modelNum = self.modelNum, Y = np.concatenate((self.train_labels, self.test_labels), axis = 1), \
-                                        lam = self.lam, L = self.L, W = self.W_train)
+                                        W = self.W_train, L = self.L, A = self.A, B = self.B, S = self.S, lam = self.lam, tol = self.tol)
 
     def eval(self):
         '''
@@ -332,11 +338,11 @@ class Evaluation:
 
                 if self.k  < 2:
                     self.converged = True
-                    print('The search method stopped because the best number of topics is now less than two.')
+                    print('The search method stopped because the number of topics found is less than two.')
                     return
                 if self.numiters  < 2:
                     self.converged = True
-                    print('The search method stopped because the best number of iterations is now less than two.')
+                    print('The search method stopped because the number of iterations found is less than two.')
                     return
 
             elif(self.iteration > self.max_search_iter):
