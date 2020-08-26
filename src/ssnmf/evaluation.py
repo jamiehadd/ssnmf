@@ -14,6 +14,13 @@ class Evaluation:
     to compute the reconstruction errors and classifications accuracies for each model
     on the train and test data.
 
+    Model Numbers
+    ----------
+    (3) ||X - AS||_F^2 + lam * ||Y - BS||_F^2 or
+    (4) ||X - AS||_F^2 + lam * D(Y||BS) or
+    (5) D(X||AS) + lam * ||Y - BS||_F^2 or
+    (6) D(X||AS) + lam * D(Y||BS)
+
     Parameters
     ----------
     train_features : array
@@ -27,7 +34,7 @@ class Evaluation:
     k              : int_
                      Number of topics.
     modelNum       : int_
-                     Number indicating which of the (S)SNMF models to train (see model numbers below).
+                     Number indicating which of the (S)SNMF models to train (see model numbers above).
     A              : array, optional
                      Initialization for the left factor matrix of the data matrix, shape (#features, k)
                      (the default is a matrix with uniform random entries).
@@ -59,14 +66,6 @@ class Evaluation:
                      data when the I-divervene a discrepancy measure for data reconstruction (default is 10).
 
 
-    Model Numbers
-    ----------
-    (3) ||X - AS||_F^2 + lam * ||Y - BS||_F^2 or
-    (4) ||X - AS||_F^2 + lam * D(Y||BS) or
-    (5) D(X||AS) + lam * ||Y - BS||_F^2 or
-    (6) D(X||AS) + lam * D(Y||BS)
-
-
     Methods
     ----------
     eval()
@@ -81,7 +80,29 @@ class Evaluation:
 
     Usage
     ----------
+    import evaluation
+    from evaluation import Evaluation
 
+    # Run hyperparameter search (Optional)
+    param_module = Evaluation(train_features = X_train,
+                                 train_labels = y_train,
+                                 test_features = X_val,
+                                 test_labels = y_val,
+                                 k = 14, modelNum = 4)
+    [opt_lamb, opt_ka, opt_itas] = param_module.iterativeLocalSearch(init_lamb=100, init_k=14, init_itas=8)
+
+    # Run model with "optimal" parameters.
+    eval_module = Evaluation(train_features = np.concatenate((X_train, X_val), axis=1),
+                                 train_labels = np.concatenate((y_train, y_val), axis=1),
+                                 test_features = X_test,
+                                 test_labels = y_test,
+                                 modelNum = 4, k = opt_ka,
+                                 lam=opt_lamb, numiters = opt_itas)
+
+    train_evals, test_evals = eval_module.eval()
+
+    print(f"The classification accuracy on the train data is {train_evals[-1][-1]*100:.2f}%")
+    print(f"The classification accuracy on the test data is {test_evals[-1]*100:.2f}%")
 
     """
 
@@ -150,21 +171,19 @@ class Evaluation:
         This function fits the (S)SNMF model to the train data, and evaluates the performance of the model on the train and test data.
 
         Returns:
-            train_evals (list): [ndarray(total reconstruction error on train data (model objective function) for each iteration),
+            train_evals (list): [ndarray(total reconstruction error (model objective function) on train data for each iteration),
                                  ndarray(data reconstruction error on train data for each iteration),
                                  ndarray(label reconstruction error on train data for each iteration),
                                  ndarray(classification accuracy on train data for each iteration)]
-            test_evals (list): [float(total reconstruction error on test data (model objective function)),
+            test_evals (list): [float(total reconstruction error (model objective function) on test data),
                                 float(data reconstruction error on test data),
                                 float(label reconstruction error on test data),
                                 float(classification accuracy on test data)]
         '''
         # Fit (S)SNMF model to train data
         train_evals = self.model.mult(numiters = self.numiters, saveerrs = True) #save train data errors
-
         # Apply (S)SNMF model to test data
         self.S_test = self.test_model() #representation matrix of test data
-
         # Compute reconstruction errors on test data
         test_evals = self.computeErrors()
 
@@ -182,13 +201,14 @@ class Evaluation:
         if self.modelNum == 3 or self.modelNum == 4: # Frobenius discrepancy measure on label data (use nonnegative least squares)
             S_test = np.zeros([self.k, np.shape(self.test_features)[1]])
             for i in range(np.shape(self.test_features)[1]):
-                S_test[:,i] = nnls(self.model.A, self.test_features[:,i])[0]
+                S_test[:,i] = nnls(np.multiply(np.ones(self.model.A.shape) * self.W_test[:,i].reshape(-1,1),self.model.A), \
+                                    np.multiply(self.W_test[:,i], self.test_features[:,i]))[0]
 
         if self.modelNum == 5 or self.modelNum == 6: # I-divergence discrepancy measure on label data (use mult. upd. I-div)
-            S_init = np.random.rand(self.k, self.test_features.shape[1])
+            S_test = np.random.rand(self.k, self.test_features.shape[1])
             for i in range(self.iter_s):
-                S_test = np.transpose(self.model.dictupdateIdiv(np.transpose(self.test_features), np.transpose(S_init), \
-                                       np.transpose(self.model.A), np.ones(self.test_features.T.shape), eps= 1e-10))
+                S_test = np.transpose(self.model.dictupdateIdiv(np.transpose(self.test_features), np.transpose(S_test), \
+                                       np.transpose(self.model.A), np.transpose(self.W_test), eps= 1e-10))
         return S_test
 
 
@@ -238,8 +258,8 @@ class Evaluation:
 
         Several hard-coded choices were made to ease the user-required knowledge of the search algorithm itself.
         These are for example:
-            - The size of the local search box is (k-1 , k+2) x (iter-1, iter+2) x (0.1*lam , 10*lam).
-            - The number of iterations tested uniformly spaced in the interval (iter-1, iter+2), which currently is 2 values.
+            - The size of the local search box is (k-1 , k+2) x (iter-1, iter+1) x (0.1*lam , 10*lam).
+            - The number of iterations tested uniformly spaced in the interval (iter-1, iter+1), which currently is 2 values.
             - The number of lambdas tested uniformly spaced in the interval (0.1*lam, 10*lam), which currently is 3 values.
 
         Args:
@@ -280,9 +300,10 @@ class Evaluation:
         self.cls_last = test_evals[-1]
 
         print(f"Initial hyperparameters: k = {self.k}, iter = {self.numiters}, and lam = {self.lam}.")
-        print(f"Initial val data reconstruction error = {test_evals[-3]}")
-        print(f"Initial val classification error = {test_evals[-2]}")
-        print(f"Initial val classification accuracy: {test_evals[-1]}")
+        print(f"Initial val total reconstruction error = {test_evals[0]}")
+        print(f"Initial val data reconstruction error = {test_evals[1]}")
+        print(f"Initial val classification error = {test_evals[2]}")
+        print(f"Initial val classification accuracy: {test_evals[3]}")
 
         while(not self.converged):
             # Perform a local search on k, itas, and lam
@@ -305,7 +326,7 @@ class Evaluation:
                                                 W_train = self.W_train, W_test= self.W_test,\
                                                 L = self.L, tol = self.tol, iter_s = self.iter_s)
                         train_evals, test_evals = eval_module.eval()
-                        if(test_evals[-1] >= best_local_acc):
+                        if(test_evals[-1] > best_local_acc):
                             best_ka = k
                             best_itas = it
                             best_lamb = la
@@ -332,9 +353,10 @@ class Evaluation:
                 if(self.iteration % 1 == 0):
                     print("Iteration:",self.iteration)
                     print("The new selection of hyperparameters: k =", self.k, "; iter =", self.numiters, "; lamb =", self.lam)
-                    print(f"Current val data reconstruction error = {test_evals[-3]}")
-                    print(f"Current val classification (div) error = {test_evals[-2]}")
-                    print(f"Current val classification accuracy: {test_evals[-1]}")
+                    print(f"Current val total reconstruction error = {test_evals[0]}")
+                    print(f"Current val data reconstruction error = {test_evals[1]}")
+                    print(f"Current val classification (div) error = {test_evals[2]}")
+                    print(f"Current val classification accuracy: {test_evals[3]}")
 
                 if self.k  < 2:
                     self.converged = True
