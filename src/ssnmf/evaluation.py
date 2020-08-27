@@ -78,7 +78,7 @@ class Evaluation:
         Perform an iterative local search in hyperparameter space for a set of (locally) optimal (k,lambda,iterations).
 
 
-    Usage
+    Usage Example
     ----------
     import evaluation
     from evaluation import Evaluation
@@ -287,7 +287,7 @@ class Evaluation:
 
         # Hyper-hyperparameters
         self.max_search_iter = 10     # Maximum number of local parameter sweeps performed
-        self.ww              = 0.01   # Threshold for convergence - continue as long as a 0.01% improvement in accuracy.
+        self.ww              = 0.001   # Threshold for convergence - continue as long as a 0.1% improvement in accuracy.
 
         # Get the initial error
         eval_module = Evaluation(train_features = self.train_features, train_labels = self.train_labels,\
@@ -313,7 +313,7 @@ class Evaluation:
             best_local_acc = 0
 
             for k in range(self.k-1,self.k+2):
-                for it in range(self.numiters-1,self.numiters+2,2):
+                for it in range(self.numiters-1,self.numiters+2,1):
                     startl = float(0.1*self.lam)
                     endl = float(10*self.lam)
                     la_vals = np.concatenate((np.linspace(startl, endl, num=2), np.array([self.lam])), axis=0)
