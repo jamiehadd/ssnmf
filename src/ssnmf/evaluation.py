@@ -126,7 +126,7 @@ class Evaluation:
         self.lam = kwargs.get('lam',1)
         self.numiters = kwargs.get('numiters',10)
         self.tol = kwargs.get('tol', 1e-4)
-        self.iter_s = kwargs.get('iter_s', 10)
+        self.iter_s = kwargs.get('iter_s', 20)
         self.A = kwargs.get('A',np.random.rand(self.rows,k)) #initialize factor A
         self.S = kwargs.get('S',np.random.rand(k,self.cols)) #initialize factor S
         self.B = kwargs.get('B', np.random.rand(self.classes, k)) #initialize factor B
@@ -198,13 +198,13 @@ class Evaluation:
         Returns:
             S_test (ndarray): representation matrix of the test data, shape(#topics, #test features)
         '''
-        if self.modelNum == 3 or self.modelNum == 4: # Frobenius discrepancy measure on label data (use nonnegative least squares)
+        if self.modelNum == 3 or self.modelNum == 4: # Frobenius discrepancy measure on features data (use nonnegative least squares)
             S_test = np.zeros([self.k, np.shape(self.test_features)[1]])
             for i in range(np.shape(self.test_features)[1]):
                 S_test[:,i] = nnls(np.multiply(np.ones(self.model.A.shape) * self.W_test[:,i].reshape(-1,1),self.model.A), \
                                     np.multiply(self.W_test[:,i], self.test_features[:,i]))[0]
 
-        if self.modelNum == 5 or self.modelNum == 6: # I-divergence discrepancy measure on label data (use mult. upd. I-div)
+        if self.modelNum == 5 or self.modelNum == 6: # I-divergence discrepancy measure on features data (use mult. upd. I-div)
             S_test = np.random.rand(self.k, self.test_features.shape[1])
             for i in range(self.iter_s):
                 S_test = np.transpose(self.model.dictupdateIdiv(np.transpose(self.test_features), np.transpose(S_test), \
