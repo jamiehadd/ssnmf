@@ -52,7 +52,7 @@ class SSNMF(SSNMF_N, SSNMF_T):
                    Missing label indicator matrix of same size as Y (the default is matrix of all ones if
                    Y is not None, None otherwise).
         tol      : Tolerance for relative error stopping criterion
-                  (i.e., method stops when difference between consecutive relative errors falls below top) 
+                  (i.e., method stops when difference between consecutive relative errors falls below tol) 
         str      : a flag to indicate whether this model is initialized by Numpy array or PyTorch tensor
 
         Methods
