@@ -5,7 +5,7 @@ import numpy as np
 from numpy import linalg as la
 import scipy.optimize.nnls as nnls
 
-import ssnmf
+import ssnmf.ssnmf
 
 
 class Evaluation:
