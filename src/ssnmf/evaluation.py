@@ -162,7 +162,7 @@ class Evaluation:
         if np.shape(self.L)[1] != self.cols:
             raise Exception('The column dimension of L is not equal to the number of samples in the train and test data.')
 
-        self.model = ssnmf2.SSNMF(X = np.concatenate((self.train_features, self.test_features), axis = 1), k = self.k, \
+        self.model = ssnmf.SSNMF(X = np.concatenate((self.train_features, self.test_features), axis = 1), k = self.k, \
                                         modelNum = self.modelNum, Y = np.concatenate((self.train_labels, self.test_labels), axis = 1), \
                                         W = self.W_train, L = self.L, A = self.A, B = self.B, S = self.S, lam = self.lam, tol = self.tol)
 
