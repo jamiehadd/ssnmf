@@ -124,6 +124,7 @@ def tfidf_train(newsgroups_train, n_features):
 
     Args:
         newsgroups_train (ndarray): corpus of all documents from all categories in train set
+        n_features (int): vocabulary size
     Returns:
         vectorizer_train (object): trained tfidf vectorizer
         feature_names_train (list): list of features extracted from the trained tfidf vectorizer

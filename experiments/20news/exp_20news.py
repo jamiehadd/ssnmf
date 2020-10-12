@@ -20,8 +20,8 @@ np.random.seed(1)
 rank = 13 # (int) input rank for NMF and (S)SNMF models
 iterations = 11 # (odd int) number of iterations to run for analysis
 run_analysis = 1 # (boolean) run all methods to obtain class. acc./keywords/class. reports/heatmaps (reproduce paper results)
-nmf_search = 0 # (boolean) run for various tolerance values (reproduce paper results)
-ssnmf_search = 0 # (boolean) run for various tolerances and regularizers (reproduce paper results)
+nmf_search = 0 # (boolean) run for various tolerance values (reproduce paper results with iterations = 10)
+ssnmf_search = 0 # (boolean) run for various tolerances and regularizers (reproduce paper results with iterations = 10)
 clust_analysis = 0 # (boolean) run code to compute clustering scores (reproduce paper results)
 # -------------------------------------
 
@@ -92,7 +92,7 @@ if nmf_search == 1:
 
         for j in range(iterations):
             print(f"Iteration {j}.")
-            nmf_svm_acc, W, nn_svm, nmf_svm_predicted, nmf_iter = evalualtion_module.NMF(rank=rank, nmf_tol=nmf_tol)
+            nmf_svm_acc, W, nn_svm, nmf_svm_predicted, nmf_iter, H, H_test = evalualtion_module.NMF(rank=rank, nmf_tol=nmf_tol)
             nmf_acc.append(nmf_svm_acc)
 
         mean_acc.append(mean(nmf_acc))
@@ -127,7 +127,7 @@ if ssnmf_search == 1:
                 print(f"Iteration {j}.")
                 for i in range(3,7):
                     # Run SSNMF
-                    test_evals, A, B, ssnmf_predicted, ssnmf_iter = evalualtion_module.SSNMF(modelNum = i,
+                    test_evals, A, B, ssnmf_predicted, ssnmf_iter, S, S_test = evalualtion_module.SSNMF(modelNum = i,
                                                                         ssnmf_tol = ssnmf_tol,lamb = ssnmf_lam, ka = rank, itas= 50)
                     acc_dict["Model" + str(i)].append(test_evals[-1])
 

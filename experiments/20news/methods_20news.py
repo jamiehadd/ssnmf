@@ -24,13 +24,13 @@ class Methods:
         Class for all methods.
 
         Parameters:
-            X_train (ndarray): tfidf data matrix, shape (vocabulary size, number of train documents)
-            X_val (ndarray): tfidf data matrix, shape (vocabulary size, number of val documents)
-            X_test (ndarray): tfidf data matrix, shape (vocabulary size, number of test documents)
+            X_train (ndarray): tfidf train data matrix, shape (vocabulary size, number of train documents)
+            X_val (ndarray): tfidf validation data matrix, shape (vocabulary size, number of val documents)
+            X_test (ndarray): tfidf test data matrix, shape (vocabulary size, number of test documents)
             train_labels (ndarray): labels of all documents in train set
             val_labels (ndarray):  labels of all documents in val set
             test_labels (ndarray):  labels of all documents in test set
-            X_train_full (ndarray): tfidf data matrix, shape (vocabulary size, number of full train documents)
+            X_train_full (ndarray): tfidf full train data matrix, shape (vocabulary size, number of full train documents)
             train_labels_full (ndarray):  labels of all documents in full train set
             cls_names (list): list of all class names (used for plotting)
             feature_names_train (list): list of features of the trained tfidf vectorizer (used for printing keywords)
@@ -62,7 +62,7 @@ class Methods:
         Run Multinomial Naive Bayes on the TFIDF representation of documents.
 
         Args:
-            print_results (boolean): 1: print classification report, heatmaps, and keywords, 0:otherwise
+            print_results (boolean): 1: print classification report, heatmaps, and features, 0:otherwise
         Retruns:
             nb_acc (float): classification accuracy on test set
             nb_predicted (ndarray): predicted labels for data points in test set
@@ -73,11 +73,11 @@ class Methods:
         nb_predicted = nb_clf.predict(self.X_test.T)
         nb_acc = np.mean(nb_predicted == self.test_labels)
 
-        print(f"\nWe achieve {nb_acc*100:.4f}% accuracy using NB only on the tfidf representation of documents.\n")
+        print(f"The classification accuracy on the test data is {nb_acc*100:.4f}%\n")
 
-        # Extract features
-        top_features(nb_clf, self.feature_names_train, self.cls_names, top_num = 10)
         if print_results == 1:
+            # Extract features
+            top_features(nb_clf, self.feature_names_train, self.cls_names, top_num = 10)
             print(metrics.classification_report(self.test_labels, nb_predicted, target_names=self.cls_names))
 
         return nb_acc, nb_predicted
@@ -87,7 +87,7 @@ class Methods:
         Run SVM on the TFIDF representation of documents.
 
         Args:
-            print_results (boolean): 1: print classification report, heatmaps, and keywords, 0:otherwise
+            print_results (boolean): 1: print classification report, heatmaps, and features, 0:otherwise
         Retruns:
             svm_acc (float): classification accuracy on test set
             svm_predicted (ndarray): predicted labels for data points in test set
@@ -99,11 +99,11 @@ class Methods:
         svm_clf.fit(self.X_train_full.T, self.train_labels_full)
         svm_predicted = svm_clf.predict(self.X_test.T)
         svm_acc = np.mean(svm_predicted == self.test_labels)
-        print(f"\nWe achieve {svm_acc*100:.4f}% accuracy using SVM only on the tfidf representation of documents.\n")
+        print(f"The classification accuracy on the test data is {svm_acc*100:.4f}%\n")
 
-        # Extract features
-        top_features(svm_clf['clf'], self.feature_names_train, self.cls_names, top_num = 10)
         if print_results == 1:
+            # Extract features
+            top_features(svm_clf['clf'], self.feature_names_train, self.cls_names, top_num = 10)
             print(metrics.classification_report(self.test_labels, svm_predicted, target_names=self.cls_names))
 
         return svm_acc, svm_predicted
@@ -128,7 +128,7 @@ class Methods:
         """
         self.nmf_tol = nmf_tol
 
-        print("\nRunning NMF + SVM\n")
+        print("\nRunning NMF + SVM")
         nmf = NMF(n_components=rank, init= 'random', tol = self.nmf_tol, solver = 'mu', max_iter = 400)
 
         # TRAINING STEP
@@ -138,8 +138,6 @@ class Methods:
         H = nmf.components_
         # Actual number of iterations
         nmf_iter = nmf.n_iter_
-        # Extract top keywords representaion of topics
-        print_keywords(W.T, features=self.feature_names_train, top_num=10)
         # Train SVM classifier on train data
         text_clf = Pipeline([('scl',StandardScaler()), \
                                 ('clf', SGDClassifier(tol=1e-5))])
@@ -154,13 +152,15 @@ class Methods:
         nmf_svm_predicted = text_clf.predict(H_test.T)
         # Report classification accuracy on test data
         nmf_svm_acc = np.mean(nmf_svm_predicted == self.test_labels)
-        print(f"\nWe achieve {nmf_svm_acc*100:.4f}% accuracy using NMF + SVM.\n")
+        print(f"The classification accuracy on the test data is {nmf_svm_acc*100:.4f}%\n")
 
         # SVM non-negaitve coefficient matrix
         nn_svm = text_clf['clf'].coef_.copy()
         nn_svm[nn_svm<0] = 0
 
         if print_results == 1:
+            # Extract top keywords representaion of topics
+            print_keywords(W.T, features=self.feature_names_train, top_num=10)
             print(metrics.classification_report(self.test_labels, nmf_svm_predicted, target_names=self.cls_names))
             factors_heatmaps(nn_svm, cls_names=self.cls_names)
 
@@ -188,8 +188,8 @@ class Methods:
             eval_module.model.B (ndarray): learnt dictionary matrix for classification, shape (classes, topics)
             ssnmf_predicted (ndarray): predicted labels for data points in test set
             ssnmf_iter (int): actual number of iterations of SSNMF model
-            eval_module.model.S (ndarray): document representation matrix for train set, shape (topics, train + test documents)
-            eval_module.S_test (ndarray): document representation matrix for test set, shape (topics, test documents)
+            S (ndarray): document representation matrix for train set, shape (topics, train + test documents)
+            S_test (ndarray): document representation matrix for test set, shape (topics, test documents)
         """
 
         print(f"\nRunning SSNMF for Model {modelNum}.")
@@ -223,6 +223,9 @@ class Methods:
         Y_predicted = eval_module.model.B@eval_module.S_test
         ssnmf_predicted = np.argmax(Y_predicted, axis=0)+1
 
+        S = eval_module.model.S
+        S_test = eval_module.S_test
+
         if print_results == 1:
             print(metrics.classification_report(self.test_labels, ssnmf_predicted, target_names=self.cls_names))
             # Plot B matrix
@@ -233,7 +236,7 @@ class Methods:
             # Extract top keywords representaion of topics
             print_keywords(eval_module.model.A.T, features=self.feature_names_train, top_num=10)
 
-        return test_evals, eval_module.model.A, eval_module.model.B, ssnmf_predicted, ssnmf_iter, eval_module.model.S, eval_module.S_test
+        return test_evals, eval_module.model.A, eval_module.model.B, ssnmf_predicted, ssnmf_iter, S, S_test
 
 
     def run_analysis(self, ssnmf_tol, nmf_tol, lamb, ka, itas, iterations, print_results=0, hyp_search=0):
@@ -241,9 +244,9 @@ class Methods:
         Compute and save all results for each iteration of each model.
 
         Args:
-            ssnmf_tol (list): list of tolerance values for termanating SSNMF Models [1,2,3,4] respecitvely
+            ssnmf_tol (list): list of tolerance values for termanating SSNMF Models [3,4,5,6] respecitvely
             nmf_tol (list): tolerance for termanating NMF model
-            lamb (list): list of regularization parameter of SSNMF Models [1,2,3,4] respecitvely
+            lamb (list): list of regularization parameter of SSNMF Models [3,4,5,6] respecitvely
             ka (int): input rank for SSNMF
             itas (int): maximum number of multiplicative update iterations
             iterations (int): (odd) number of iterations to run for analysis

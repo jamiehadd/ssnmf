@@ -7,9 +7,9 @@ def top_features(classifier, feature_names, cls_names, top_num):
     """
     Print the classifier features.
     Args:
-        classifier (object): a fitted classifier (e.g. instance of a class Multinomial Naive Bayes)
+        classifier (object): a fitted classifier
         feature_names (list): vocabulary
-        cls_names (list): class labels
+        cls_names (list): class labels (str)
     """
     for i, cls in enumerate(cls_names):
         print("%s: %s" % (cls, ", ".join(np.asarray(feature_names)[np.argsort(classifier.coef_[i])[:-top_num-1:-1]])))
@@ -30,10 +30,10 @@ def print_keywords(W, features, top_num):
 
 def factors_heatmaps(B, cls_names = [], save=False, filepath = None):
     """
-    Plot heatmap of the classification dictionary matrix, shape (classes, topics).
+    Plot heatmap of the classifier coefficient matrix, shape (classes, topics).
     Args:
-        B (ndarray): classification dictionary matrix (classes, topics)
-        cls_names (list): class labels
+        B (ndarray): classifier coefficient matrix (classes, topics)
+        cls_names (list): class labels (str)
         save (boolean): True to save figure, False otherwise
         filepath (str): save figure in filepath.
     """
