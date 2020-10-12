@@ -428,7 +428,9 @@ This method updates the factor matrices N times.  You can see how much the relat
 
 
 ## Citing
-If you use our code in an academic setting, please consider citing our code.
+If you use our code in an academic setting, please consider citing the following paper.
+
+J. Haddock, L. Kassab, S. Li, A. Kryshchenko, R. Grotheer, E. Sizikova, C. Wang, T. Merkh, R. W. M. A. Madushani, M. Ahn, D. Needell, and K. Leonard, "Semi-supervised Nonnegative Matrix Factorization Models for Topic Modeling in Learning Tasks." Submitted, 2020.
 <!---Please cite our paper: ... -->
 
 
