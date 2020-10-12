@@ -86,6 +86,6 @@ setup(
     url="https://github.com/jamiehadd/ssnmf",
     # Do not edit this string manually, always use bumpversion
     # Details in CONTRIBUTING.rst
-    version="0.0.2",
+    version="1.0.0",
     zip_safe=False,
 )
