@@ -26,7 +26,7 @@ dev_requirements = [
     *docs_requirements,
     *setup_requirements,
     
-    "bump2version>=1.0.1",
+    "bump2version>=1.0.2",
     "ipython>=7.5.0",
     
     "twine>=1.13.0",
@@ -86,6 +86,6 @@ setup(
     url="https://github.com/jamiehadd/ssnmf",
     # Do not edit this string manually, always use bumpversion
     # Details in CONTRIBUTING.rst
-    version="1.0.1",
+    version="1.0.2",
     zip_safe=False,
 )
