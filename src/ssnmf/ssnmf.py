@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#from ssnmf.ssnmf_numpy import *
-#from ssnmf.ssnmf_pytorch import *
 import numpy as np
 from numpy import linalg as la
 import torch
