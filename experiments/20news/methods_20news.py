@@ -1,6 +1,5 @@
 import ssnmf
-from ssnmf import evaluation
-from evaluation import Evaluation
+from ssnmf.evaluation  import Evaluation
 import numpy as np
 import pandas as pd
 from utils_20news import *
