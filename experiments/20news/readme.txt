@@ -1,0 +1,10 @@
+Run exp_20news.py with specified parameters to reproduce the paper's results.
+
+- We use rank = 13 for all experiments.
+- We use iterations = 11 for reporting all the classification results.
+
+To reproduce the classification results set run_analysis = 1.
+To reproduce the results for the selected nmf parameters set nmf_search = 1 (with iterations = 10).
+To reproduce the results for the selected ssnmf parameters set ssnmf_search = 1 (with iterations = 10).
+To reproduce the clustering results set clust_analysis = 1. You can also specify clust = "hard" or clust = "soft" on line 155.
+
