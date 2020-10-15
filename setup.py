@@ -9,7 +9,7 @@ with open("README.md") as readme_file:
     readme = readme_file.read()
 
 test_requirements = [
-    "scipy",
+    "scipy==1.4.1",
     "pytest",
 ]
 
@@ -35,7 +35,10 @@ dev_requirements = [
     "tox>=3.15.0",
 ]
 
-requirements = ["numpy","torch"]
+requirements = [
+    "numpy",
+    "torch",
+]
 
 extra_requirements = {
     "test": test_requirements,
