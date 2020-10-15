@@ -114,7 +114,7 @@ def clustering_analysis(subcat_onehot, sub_names, S_dict, S_test_dict, median_di
 
     """
     #SSNMF Models
-    print(f"\n\nSSNMF Results:")
+    print("\n\nSSNMF Results:")
     for i in range(3,7):
         score_avg = []
         S_list = S_dict["Model" + str(i)]
@@ -125,7 +125,7 @@ def clustering_analysis(subcat_onehot, sub_names, S_dict, S_test_dict, median_di
             S_model = np.concatenate((S_train, S_test), axis = 1) # concatenate the representation for train and test data
             score_max, I = clust_scores(M = subcat_onehot, S = S_model, clust = clust)
             score_avg.append(np.mean(score_max))
-        print(f"Average SSNMF Model {i} score {np.mean(score_avg)}.")
+        print("Average SSNMF Model {} score {}.".format(i,np.mean(score_avg)))
 
         # SSNMF Median Results
         S = S_dict["Model" + str(i)][median_dict["Model" + str(i)]]
@@ -133,13 +133,13 @@ def clustering_analysis(subcat_onehot, sub_names, S_dict, S_test_dict, median_di
         S_train = S[:,0:numb_train]
         S_model = np.concatenate((S_train, S_test), axis = 1) # concatenate the representation for train and test data
         score_max, I = clust_scores(M = subcat_onehot, S = S_model, clust = clust)
-        print(f"SSNMF Median Model {i} Results:")
+        print("SSNMF Median Model {} Results:".format(i))
         for i_m in range(len(score_max)):
-            print(f"Topic {i_m+1}: {sub_names[I[i_m]]} (score: {score_max[i_m]})")
-        print(f"Median SSNMF Model {i} average score {np.mean(score_max)}.\n\n")
+            print("Topic {}: {} (score: {})".format(i_m+1,sub_names[I[i_m]],score_max[i_m]))
+        print("Median SSNMF Model {} average score {}.\n\n".format(i,np.mean(score_max)))
 
     # NMF Model
-    print(f"\n\nNMF Results:")
+    print("\n\nNMF Results:")
     H_train_list = S_dict["NMF"]
     H_test_list = S_test_dict["NMF"]
     score_nmf_avg = []
@@ -149,7 +149,7 @@ def clustering_analysis(subcat_onehot, sub_names, S_dict, S_test_dict, median_di
         H_model = np.concatenate((H_train, H_test), axis = 1)
         score_max_nmf, I_nmf = clust_scores(M=subcat_onehot, S=H_model, clust = clust)
         score_nmf_avg.append(np.mean(score_max_nmf))
-    print(f"Average NMF Model score {np.mean(score_nmf_avg)}.")
+    print("Average NMF Model score {}.".format(np.mean(score_nmf_avg)))
 
     # NMF Median Results
     H_train = S_dict["NMF"][median_dict["NMF"]]
@@ -157,5 +157,5 @@ def clustering_analysis(subcat_onehot, sub_names, S_dict, S_test_dict, median_di
     H_model = np.concatenate((H_train, H_test), axis = 1)
     score_max_nmf, I_nmf = clust_scores(M=subcat_onehot, S=H_model, clust = clust)
     for i_m in range(len(score_max_nmf)):
-        print(f"Topic {i_m+1}: {sub_names[I_nmf[i_m]]} (score: {score_max_nmf[i_m]})")
-    print(f"Median NMF model average score {np.mean(score_max_nmf)}.")
+        print("Topic {}: {} (score: {})".format(i_m+1,sub_names[I_nmf[i_m]],score_max_nmf[i_m]))
+    print("Median NMF model average score {}.".format(np.mean(score_max_nmf)))

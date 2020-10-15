@@ -37,15 +37,9 @@ def load_data():
 
     # Print total number of documents
     data_len = [len(comp.data), len(science.data), len(politics.data), len(recreation.data), len(religion.data)]
-    #print(f"Number of documents in computers: {data_len[0]}, sciences: {data_len[1]}, politics: {data_len[2]}, recreation: {data_len[3]}, religion: {data_len[4]}.")
-    #print(f"Total number of documents is {sum(data_len)}")
-
-    # Print the first three lines of the first loaded file in train_comp
-    # print("\n".join(comp.data[22].split("\n")[:3]))
 
     # Subsample classes to create a balanced dataset
     sub_k = min(data_len)
-    #print(f"The subsample size is {sub_k}.")
     comp.data, comp.target = [list(t) for t in zip(*random.sample(list(zip(comp.data, comp.target)), sub_k))]
     science.data, science.target  = [list(t) for t in zip(*random.sample(list(zip(science.data, science.target)), sub_k))]
     politics.data, politics.target = [list(t) for t in zip(*random.sample(list(zip(politics.data, politics.target)), sub_k))]
@@ -97,23 +91,16 @@ def load_data():
 
     # Corpus from all categories in test set
     newsgroups_test = test_comp + test_scien + test_polit + test_rel + test_rec
-    #print(f"Total number of documents in all categories in the test is {len(newsgroups_test)}.")
     test_labels = np.concatenate((y_test_comp,y_test_scien,y_test_polit,y_test_rel,y_test_rec), axis=None)
-    #print(test_labels.shape)
     test_subcat = np.concatenate((subcat_comp_test,subcat_scien_test,subcat_polit_test,subcat_rel_test,subcat_rec_test), axis=None)
-    #print(test_subcat.shape)
 
     # Corpus from all categories in validation set
     newsgroups_val = val_comp + val_scien + val_polit + val_rel + val_rec
-    #print(f"Total number of documents in all categories in the validation set is {len(newsgroups_val)}.")
     val_labels = np.concatenate((y_val_comp,y_val_scien,y_val_polit,y_val_rel,y_val_rec), axis=None)
-    #print(val_labels.shape)
     val_subcat = np.concatenate((subcat_comp_val,subcat_scien_val,subcat_polit_val,subcat_rel_val,subcat_rec_val), axis=None)
-    #print(val_subcat.shape)
 
     # Data Split
     total = len(test_labels) + len(val_labels) + len(train_labels)
-    #print(f"Train set: {len(train_labels)/total*100:.2f}%, Validation set: {len(val_labels)/total*100:.2f}%, Test set: {len(test_labels)/total *100:.2f}%.")
 
     return newsgroups_train, train_labels, newsgroups_test, test_labels, newsgroups_val, val_labels, train_subcat, test_subcat, val_subcat
 
@@ -142,9 +129,7 @@ def tfidf_train(newsgroups_train, n_features):
     dense_train = vectors_train.todense()
 
     denselist_train = np.array(dense_train).transpose() # tfidf matrix
-    #print(f"Extracted {len(feature_names_train)} features (words) using Tf-Idf weights.")
     X_train = denselist_train.copy() # train data (tfidf)
-    #print(f"Extracted Tf-Idf weights train matrix of dimensions {X_train.shape}.")
 
     return vectorizer_train, feature_names_train, X_train
 
@@ -163,7 +148,6 @@ def tfidf_transform(vectorizer_train, newsgroups_test):
     dense_test = vectors_test.todense()
     denselist_test = np.array(dense_test).transpose()
     X_test = denselist_test.copy()
-    #print(f"Extracted Tf-Idf weights test matrix of dimensions {X_test.shape}.")
 
     return X_test
 

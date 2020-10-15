@@ -72,7 +72,7 @@ class Methods:
         nb_predicted = nb_clf.predict(self.X_test.T)
         nb_acc = np.mean(nb_predicted == self.test_labels)
 
-        print(f"The classification accuracy on the test data is {nb_acc*100:.4f}%\n")
+        print("The classification accuracy on the test data is {:.4f}%\n".format(nb_acc*100))
 
         if print_results == 1:
             # Extract features
@@ -98,7 +98,7 @@ class Methods:
         svm_clf.fit(self.X_train_full.T, self.train_labels_full)
         svm_predicted = svm_clf.predict(self.X_test.T)
         svm_acc = np.mean(svm_predicted == self.test_labels)
-        print(f"The classification accuracy on the test data is {svm_acc*100:.4f}%\n")
+        print("The classification accuracy on the test data is {:.4f}%\n".format(svm_acc*100))
 
         if print_results == 1:
             # Extract features
@@ -151,7 +151,7 @@ class Methods:
         nmf_svm_predicted = text_clf.predict(H_test.T)
         # Report classification accuracy on test data
         nmf_svm_acc = np.mean(nmf_svm_predicted == self.test_labels)
-        print(f"The classification accuracy on the test data is {nmf_svm_acc*100:.4f}%\n")
+        print("The classification accuracy on the test data is {:.4f}%\n".format(nmf_svm_acc*100))
 
         # SVM non-negaitve coefficient matrix
         nn_svm = text_clf['clf'].coef_.copy()
@@ -191,7 +191,7 @@ class Methods:
             S_test (ndarray): document representation matrix for test set, shape (topics, test documents)
         """
 
-        print(f"\nRunning SSNMF for Model {modelNum}.")
+        print("\nRunning SSNMF for Model {}.".format(modelNum))
         self.ssnmf_tol = ssnmf_tol
         self.hyp_search = hyp_search
         self.modelNum = modelNum
@@ -217,7 +217,7 @@ class Methods:
         ssnmf_iter = len(train_evals[0])
 
         #print(f"The classification accuracy on the train data is {train_evals[-1][-1]*100:.4f}%")
-        print(f"The classification accuracy on the test data is {test_evals[-1]*100:.4f}%")
+        print("The classification accuracy on the test data is {:.4f}%".format(test_evals[-1]*100))
 
         Y_predicted = eval_module.model.B@eval_module.S_test
         ssnmf_predicted = np.argmax(Y_predicted, axis=0)+1
@@ -286,7 +286,7 @@ class Methods:
         Yhat_dict["NB"].append(nb_predicted)
 
         for j in range(iterations):
-            print(f"Iteration {j}.")
+            print("Iteration {}.".format(j))
             for i in range(3,7):
                 # Run SSNMF
                 test_evals, A, B, ssnmf_predicted, ssnmf_iter, S, S_test = evalualtion_module.SSNMF(modelNum = i, ssnmf_tol = ssnmf_tol[i-3],lamb = lamb[i-3],\
@@ -328,22 +328,22 @@ class Methods:
         print("---------------------------------------\n")
         for i in range(3,7):
             acc = acc_dict["Model" + str(i)]
-            print(f"Model {i} average accuracy: {mean(acc):.4f} ± {stdev(acc):.4f}.")
+            print("Model {} average accuracy: {:.4f} ± {:.4f}.".format(i,mean(acc),stdev(acc)))
         acc = acc_dict["NMF"]
-        print(f"NMF average accuracy: {mean(acc):.4f} ± {stdev(acc):.4f}.")
+        print("NMF average accuracy: {:.4f} ± {:.4f}.".format(mean(acc),stdev(acc)))
         acc = acc_dict["NB"][0]
-        print(f"NB accuracy: {acc:.4f}.")
+        print("NB accuracy: {:.4f}.".format(acc))
         acc = acc_dict["SVM"]
-        print(f"SVM average accuracy: {mean(acc):.4f} ± {stdev(acc):.4f}.")
+        print("SVM average accuracy: {:.4f} ± {:.4f}.".format(mean(acc),stdev(acc)))
 
         # Report average number of iterations (mult. updates) for models
         print("\n\nPrinting mean number of iterations (multiplicative updates)...")
         print("----------------------------------------------------------------\n")
         for i in range(3,7):
             iter_list = iter_dict["Model" + str(i)]
-            print(f"Model {i} average number of iterations: {mean(iter_list):.2f}.")
+            print("Model {} average number of iterations: {:.2f}.".format(i,mean(iter_list)))
         iter_list = iter_dict["NMF"]
-        print(f"NMF average number of iterations: {mean(iter_list):.2f}.")
+        print("NMF average number of iterations: {:.2f}.".format(mean(iter_list)))
 
         # Find median performance for models
         print("\n\nPrinting median accuracy results...")
@@ -352,18 +352,18 @@ class Methods:
         for i in range(3,7):
             acc = acc_dict["Model" + str(i)]
             median_dict["Model" + str(i)] = np.argsort(acc)[len(acc)//2]
-            print(f"Model {i} median accuracy: {median(acc):.4f}.")
+            print("Model {} median accuracy: {:.4f}.".format(i,median(acc)))
 
         acc = acc_dict["NMF"]
         median_dict["NMF"] = np.argsort(acc)[len(acc)//2]
-        print(f"NMF median accuracy: {median(acc):.4f}.")
+        print("NMF median accuracy: {:.4f}.".format(median(acc)))
 
         acc = acc_dict["NB"][0]
-        print(f"NB accuracy: {acc:.4f}.")
+        print("NB accuracy: {:.4f}.".format(acc))
 
         acc = acc_dict["SVM"]
         median_dict["SVM"] = np.argsort(acc)[len(acc)//2]
-        print(f"SVM median accuracy: {median(acc):.4f}.")
+        print("SVM median accuracy: {:.4f}.".format(median(acc)))
 
         pickle.dump(median_dict, open("median_dict.pickle", "wb"))
         pickle.dump([ssnmf_tol, nmf_tol, lamb, ka, itas, iterations, hyp_search], open("param_list.pickle", "wb"))
@@ -385,7 +385,7 @@ class Methods:
         print("\n\nPrinting classification report, keywords, and heatmaps for median model results.")
         print("-----------------------------------------------------------------------------------\n")
         for i in range(3,7):
-            print(f"\nSSNMF Model {i} results.\n")
+            print("\nSSNMF Model {} results.\n".format(i))
             A = A_dict["Model" + str(i)][median_dict["Model" + str(i)]]
             B = B_dict["Model" + str(i)][median_dict["Model" + str(i)]]
             ssnmf_predicted = Yhat_dict["Model" + str(i)][median_dict["Model" + str(i)]]
@@ -396,9 +396,9 @@ class Methods:
             B_norm = B/B.sum(axis=0)[None,:]
             factors_heatmaps(B_norm, cls_names=self.cls_names, save=True, filepath = 'SSNMF_Model{}_Normalized.png'.format(i))
             print_keywords(A.T, features=self.feature_names_train, top_num=10)
-            print(f"\nSSNMF Model {i} number of iterations {iter}.\n")
+            print("\nSSNMF Model {} number of iterations {}.\n".format(i,iter))
 
-        print(f"\nNMF results.\n")
+        print("\nNMF results.\n")
         W = A_dict["NMF"][median_dict["NMF"]]
         nn_svm = B_dict["NMF"][median_dict["NMF"]]
         nmf_svm_predicted = Yhat_dict["NMF"][median_dict["NMF"]]
@@ -408,12 +408,12 @@ class Methods:
         factors_heatmaps(nn_svm, cls_names=self.cls_names, save = True, filepath = 'NMF.png')
         nn_svm_norm = nn_svm/nn_svm.sum(axis=0)[None,:]
         factors_heatmaps(nn_svm_norm, cls_names=self.cls_names, save = True, filepath = 'NMF_Normalized.png')
-        print(f"\nNMF model number of iterations {iter}.\n")
+        print("\nNMF model number of iterations {}.\n".format(iter))
 
-        print(f"\nNB results.\n")
+        print("\nNB results.\n")
         nb_predicted = Yhat_dict["NB"][0]
         print(metrics.classification_report(self.test_labels, nb_predicted, target_names=self.cls_names))
 
-        print(f"\nSVM results.\n")
+        print("\nSVM results.\n")
         svm_predicted = Yhat_dict["SVM"][median_dict["SVM"]]
         print(metrics.classification_report(self.test_labels, svm_predicted, target_names=self.cls_names))

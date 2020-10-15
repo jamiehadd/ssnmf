@@ -83,6 +83,7 @@ if nmf_search == 1:
     for tol_idx in range(len(tol_list)):
         nmf_acc = []
         nmf_tol = tol_list[tol_idx]
+        print("Testing tolerance equal to {}.".format(nmf_tol))
         # Construct an evaluation module
         evalualtion_module = Methods(X_train = X_train, X_val = X_val, X_test = X_val,\
                                 train_labels = train_labels, val_labels = val_labels,\
@@ -91,16 +92,16 @@ if nmf_search == 1:
                                 feature_names_train=feature_names_train)
 
         for j in range(iterations):
-            print(f"Iteration {j}.")
+            print("Iteration {}.".format(j))
             nmf_svm_acc, W, nn_svm, nmf_svm_predicted, nmf_iter, H, H_test = evalualtion_module.NMF(rank=rank, nmf_tol=nmf_tol)
             nmf_acc.append(nmf_svm_acc)
 
         mean_acc.append(mean(nmf_acc))
         std_acc.append(stdev(nmf_acc))
 
-    print(f"\n\nResults for {iterations} iterations.\n")
+    print("\n\nResults for {} iterations.\n".format(iterations))
     for tol_idx in range(len(tol_list)):
-        print(f"NMF average accuracy (with tol = {tol_list[tol_idx]}): {mean_acc[tol_idx]:.4f} ± {std_acc[tol_idx]:.4f}.")
+        print("NMF average accuracy (with tol = {}): {:.4f} ± {:.4f}.".format(tol_list[tol_idx],mean_acc[tol_idx],std_acc[tol_idx]))
 
 
 if ssnmf_search == 1:
@@ -113,8 +114,10 @@ if ssnmf_search == 1:
 
     for lam_idx in range (len(lam_list)):
         ssnmf_lam = lam_list[lam_idx]
+        print("Testing lambda equal to {}.".format(ssnmf_lam))
         for tol_idx in range (len(tol_list)):
             ssnmf_tol = tol_list[tol_idx]
+            print("Testing tolerance equal to {}.".format(ssnmf_tol))
             acc_dict = {"Model3": [], "Model4": [], "Model5": [], "Model6": []}
             # Construct an evaluation module
             evalualtion_module = Methods(X_train = X_train, X_val = X_val, X_test = X_val,\
@@ -124,7 +127,7 @@ if ssnmf_search == 1:
                                     feature_names_train=feature_names_train)
 
             for j in range(iterations):
-                print(f"Iteration {j}.")
+                print("Iteration {}.".format(j))
                 for i in range(3,7):
                     # Run SSNMF
                     test_evals, A, B, ssnmf_predicted, ssnmf_iter, S, S_test = evalualtion_module.SSNMF(modelNum = i,
@@ -135,7 +138,7 @@ if ssnmf_search == 1:
                 acc = acc_dict["Model" + str(i)]
                 mean_dict["Model" + str(i)].append(mean(acc))
                 std_dict["Model" + str(i)].append(stdev(acc))
-                print(f"Model {i} average accuracy (with tol = {ssnmf_tol} and lam = {ssnmf_lam}): {mean(acc):.4f} ± {stdev(acc):.4f}.")
+                print("Model {} average accuracy (with tol = {} and lam = {}): {:.4f} ± {:.4f}.".format(i,ssnmf_tol,ssnmf_lam,mean(acc),stdev(acc)))
 
     for i in range(3,7):
         idx_final = 0
@@ -145,14 +148,13 @@ if ssnmf_search == 1:
                 ssnmf_tol = tol_list[tol_idx]
                 m_final = mean_dict["Model" + str(i)][idx_final]
                 s_final = std_dict["Model" + str(i)][idx_final]
-                print(f"Model {i} average accuracy (with tol = {ssnmf_tol} and lam = {ssnmf_lam}): {m_final:.4f} ± {s_final:.4f}.")
+                print("Model {} average accuracy (with tol = {} and lam = {}): {:.4f} ± {:.4f}.".format(i,ssnmf_tol,ssnmf_lam,m_final,s_final))
                 idx_final += 1
         print()
 
 if clust_analysis == 1:
     """ Compute hard/soft clustering scores."""
-    # Clustering type (Parameter):
-    clust = "hard" # clust = "soft"
+    clust_list = ["hard", "soft"]
 
     # Ground-truth matrix:
     subcat_all = np.concatenate((train_subcat_full, test_subcat), axis = None)
@@ -167,5 +169,8 @@ if clust_analysis == 1:
     S_test_dict = pickle.load(open("S_test_dict.pickle", "rb"))
     median_dict = pickle.load(open("median_dict.pickle", "rb"))
 
-    clustering_analysis(subcat_onehot = subcat_onehot, sub_names = sub_names, S_dict = S_dict, S_test_dict = S_test_dict,\
-                        median_dict=median_dict, clust=clust, numb_train = X_train_full.shape[1])
+    for cl in range(len(clust_list)):
+        clust =  clust_list[cl] #clustering type
+        print("Running {} clustering.\n".format(clust))
+        clustering_analysis(subcat_onehot = subcat_onehot, sub_names = sub_names, S_dict = S_dict, S_test_dict = S_test_dict,\
+                            median_dict=median_dict, clust=clust, numb_train = X_train_full.shape[1])
