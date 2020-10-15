@@ -35,7 +35,7 @@ dev_requirements = [
     "tox>=3.15.0",
 ]
 
-requirements = ["numpy"]
+requirements = ["numpy","torch"]
 
 extra_requirements = {
     "test": test_requirements,
