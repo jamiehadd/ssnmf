@@ -3,20 +3,20 @@
 [![PyPI Version](https://img.shields.io/pypi/v/ssnmf.svg)](https://pypi.org/project/ssnmf/)
 [![Supported Python Versions](https://img.shields.io/pypi/pyversions/ssnmf.svg)](https://pypi.org/project/ssnmf/)
 
-SSNMF contains class for (SS)NMF model and several multiplicative update methods to train different models.
+SSNMF contains class for (SS)NMF models and several multiplicative update methods to train different models.
 
 ---
 
 ## Documentation
 
-The NMF model consists of the data matrix to be factorized, X, the factor matrices, A and
+The SSNMF models consist of the data matrix to be factorized, X, the factor matrices, A and
 S.  Each model also consists of a label matrix, Y, classification factor matrix, B, and
 classification weight parameter, lam (although these three variables will be empty if Y is not
 input).  These parameters define the objective function defining the model:
 1. ||X - AS||<sub>F</sub><sup>2</sup>
-2. D(X||AS) 
+2. D(X||AS)
 3. ||X - AS||<sub>F</sub><sup>2</sup> + &lambda;* ||Y - BS||<sub>F</sub><sup>2</sup>
-4. ||X - AS||<sub>F</sub><sup>2</sup> + &lambda; * D(Y||BS) 
+4. ||X - AS||<sub>F</sub><sup>2</sup> + &lambda; * D(Y||BS)
 5. D(X||AS) + &lambda;* ||Y - BS||<sub>F</sub><sup>2</sup>
 6. D(X||AS) + &lambda;* D(Y||BS)
 
@@ -82,7 +82,7 @@ you through the process.
 
 ## Usage
 
-First, import the `ssnmf` package and the relevant class `SSNMF`.  We import `numpy`, `scipy` , and `torch` for experimentation. 
+First, import the `ssnmf` package and the relevant class `SSNMF`.  We import `numpy`, `scipy` , and `torch` for experimentation.
 ```python
 >>> import ssnmf
 >>> from ssnmf import SSNMF
@@ -93,7 +93,7 @@ First, import the `ssnmf` package and the relevant class `SSNMF`.  We import `nu
 >>> import scipy.optimize
 ```
 
-SSNMF can take both Numpy array and PyTorch Tensor to initialize an (SS)NMF model. 
+SSNMF can take both Numpy array and PyTorch Tensor to initialize an (SS)NMF model.
 
 If a model is initialized with PyTorch Tensor, `GPU` may be utilized to run the model.
 To use `GPU` to run (SS)NMF, users should have `PyTorch` installed on their devices. To test if the `GPU` is available for their devices, run the following code. If it returns `True`, then `GPU` will be used to run this model, otherwise the CPU will be used.
@@ -103,7 +103,7 @@ To use `GPU` to run (SS)NMF, users should have `PyTorch` installed on their devi
 ```
 
 
-### 1. Training an unsupervised model without missing data using Numpy array. 
+### 1. Training an unsupervised model without missing data using Numpy array.
 
 Declare an unsupervised NMF model ||X - AS||<sub>F</sub><sup>2</sup> with data matrix `X` and number of topics `k`.  
 
@@ -116,7 +116,7 @@ Declare an unsupervised NMF model ||X - AS||<sub>F</sub><sup>2</sup> with data m
 >>> S0 = model.S
 ```
 
-You may access the factor matrices initialized in the model, e.g., to check relative reconstruction error 
+You may access the factor matrices initialized in the model, e.g., to check relative reconstruction error
 <span style="color:darkred;">||X - AS||<sub>F</sub><sup>2</sup> / ||X - A<sub>0</sub>S<sub>0</sub>||<sub>F</sub><sup>2</sup></span>
 
 ```python
@@ -131,16 +131,16 @@ Run the multiplicative updates method for this unsupervised model for `N` iterat
 >>> [errs] = model.mult(numiters = N, saveerrs = True)
 ```
 
-This method tries to updates the factor matrices N times. The actual number of updates depends on both N and the tolerance. You can see how many iterations that the model actually ran and how much the relative reconstruction error improves. 
+This method tries to updates the factor matrices N times. The actual number of updates depends on both N and the tolerance. You can see how many iterations that the model actually ran and how much the relative reconstruction error improves.
 
 ```python
->>> size = errs.shape[0] 
+>>> size = errs.shape[0]
 >>> print("number of iterations that this model runs: ", size)
 >>> rel_error = errs[size - 1]**2/model.fronorm(model.X, A0, S0, model.W)**2
 >>> print("the final relative reconstruction  error is ", rel_error)
 ```
 
-### 2. Training an unsupervised model without missing data using PyTorch tensor. 
+### 2. Training an unsupervised model without missing data using PyTorch tensor.
 
 Declare an unsupervised NMF model <span style="color:darkred;">D(X||AS)</span>
  with data matrix `X` and number of topics `k`.  
@@ -154,7 +154,7 @@ Declare an unsupervised NMF model <span style="color:darkred;">D(X||AS)</span>
 >>> S0 = model.S
 ```
 
-You may access the factor matrices initialized in the model, e.g., to check relative reconstruction error 
+You may access the factor matrices initialized in the model, e.g., to check relative reconstruction error
 <span style="color:darkred;">D(X||AS)/D(X||A<sub>0</sub>S<sub>0</sub>)</span>
 
 ```python
@@ -169,10 +169,10 @@ Run the multiplicative updates method for this unsupervised model for `N` iterat
 >>> [errs] = model.mult(numiters = N, saveerrs = True)
 ```
 
-This method tries to updates the factor matrices N times. The actual number of updates depends on both N and the tolerance. You can see how many iterations that the model actually ran and how much the relative reconstruction error improves. 
+This method tries to updates the factor matrices N times. The actual number of updates depends on both N and the tolerance. You can see how many iterations that the model actually ran and how much the relative reconstruction error improves.
 
 ```python
->>> size = errs.shape[0] 
+>>> size = errs.shape[0]
 >>> print("number of iterations that this model runs: ", size)
 >>> rel_error = errs[size - 1]/model.Idiv(model.X, A0, S0, model.W)
 >>> print("the final relative reconstruction error is ", rel_error)
@@ -390,7 +390,7 @@ Declare a supervised SSNMF model <span style="color:darkred;">D(X||AS) + &lambda
 
 ```python
 >>> devise = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
->>> Xt = getTensor(X, devise) ## getTensor() defined in section 4.Training a supervised model without missing data using PyTorch tensor 
+>>> Xt = getTensor(X, devise) ## getTensor() defined in section 4.Training a supervised model without missing data using PyTorch tensor
 >>> Yt = getTensor(labelmat, devise)
 >>> L0 = getL(Y, 10, device)
 >>> k = 10
@@ -426,10 +426,26 @@ This method updates the factor matrices N times.  You can see how much the relat
 >>> print("the final classifier's accuracy is ", acc)
 ```
 
+## Experiments
+Here is the link to the Github repo of some experiments we ran using the SSNMF models <<https://github.com/jamiehadd/ssnmf/tree/master/experiments>>
+
+Additional packages needed for experiments:
+SimPy, scikit-learn, pandas, NLTK
+```bash
+    $ pip install scipy==1.4.1 --force-reinstall
+    $ pip install  -U scikit-learn
+    $ pip install pandas
+    $ pip install --user -U nltk
+
+```
+Note: The evaluation module of the ssnmf package uses the nonnegative least squared (nnls) method from scipy.optimize. To avoid running into issues, please install scipy version 1.4.1.
 
 ## Citing
-If you use our code in an academic setting, please consider citing our code.
-<!---Please cite our paper: ... -->
+If you use our code in an academic setting, please consider citing the following paper.
+
+J. Haddock, L. Kassab, S. Li, A. Kryshchenko, R. Grotheer, E. Sizikova, C. Wang, T. Merkh, R. W. M. A. Madushani, M. Ahn, D. Needell, and K. Leonard, "Semi-supervised Nonnegative Matrix Factorization Models for Topic Modeling in Learning Tasks." Submitted, 2020.
+
+
 
 
 
