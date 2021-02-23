@@ -448,7 +448,6 @@ J. Haddock, L. Kassab, S. Li, A. Kryshchenko, R. Grotheer, E. Sizikova, C. Wang,
 
 
 
-
 ## Development
 See [CONTRIBUTING.md](CONTRIBUTING.md) for information related to developing the code.
 © 2020 GitHub, Inc.

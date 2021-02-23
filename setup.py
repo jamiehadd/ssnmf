@@ -9,7 +9,9 @@ with open("README.md") as readme_file:
     readme = readme_file.read()
 
 test_requirements = [
-    "scipy",
+    "numpy",
+    "torch"
+    "scipy==1.4.1",
     "pytest",
 ]
 
@@ -26,7 +28,7 @@ dev_requirements = [
     *docs_requirements,
     *setup_requirements,
     
-    "bump2version>=1.0.0",
+    "bump2version>=1.0.3",
     "ipython>=7.5.0",
     
     "twine>=1.13.0",
@@ -35,7 +37,10 @@ dev_requirements = [
     "tox>=3.15.0",
 ]
 
-requirements = ["numpy"]
+requirements = [
+    "numpy",
+    "torch",
+]
 
 extra_requirements = {
     "test": test_requirements,
@@ -86,6 +91,6 @@ setup(
     url="https://github.com/jamiehadd/ssnmf",
     # Do not edit this string manually, always use bumpversion
     # Details in CONTRIBUTING.rst
-    version="0.0.2",
+    version="1.0.3",
     zip_safe=False,
 )

@@ -5,7 +5,7 @@ import numpy as np
 from numpy import linalg as la
 import scipy.optimize.nnls as nnls
 
-import ssnmf2
+import ssnmf.ssnmf
 
 
 class Evaluation:
@@ -126,7 +126,7 @@ class Evaluation:
         self.lam = kwargs.get('lam',1)
         self.numiters = kwargs.get('numiters',10)
         self.tol = kwargs.get('tol', 1e-4)
-        self.iter_s = kwargs.get('iter_s', 10)
+        self.iter_s = kwargs.get('iter_s', 20)
         self.A = kwargs.get('A',np.random.rand(self.rows,k)) #initialize factor A
         self.S = kwargs.get('S',np.random.rand(k,self.cols)) #initialize factor S
         self.B = kwargs.get('B', np.random.rand(self.classes, k)) #initialize factor B
@@ -162,7 +162,7 @@ class Evaluation:
         if np.shape(self.L)[1] != self.cols:
             raise Exception('The column dimension of L is not equal to the number of samples in the train and test data.')
 
-        self.model = ssnmf2.SSNMF(X = np.concatenate((self.train_features, self.test_features), axis = 1), k = self.k, \
+        self.model = ssnmf.SSNMF(X = np.concatenate((self.train_features, self.test_features), axis = 1), k = self.k, \
                                         modelNum = self.modelNum, Y = np.concatenate((self.train_labels, self.test_labels), axis = 1), \
                                         W = self.W_train, L = self.L, A = self.A, B = self.B, S = self.S, lam = self.lam, tol = self.tol)
 
@@ -198,13 +198,13 @@ class Evaluation:
         Returns:
             S_test (ndarray): representation matrix of the test data, shape(#topics, #test features)
         '''
-        if self.modelNum == 3 or self.modelNum == 4: # Frobenius discrepancy measure on label data (use nonnegative least squares)
+        if self.modelNum == 3 or self.modelNum == 4: # Frobenius discrepancy measure on features data (use nonnegative least squares)
             S_test = np.zeros([self.k, np.shape(self.test_features)[1]])
             for i in range(np.shape(self.test_features)[1]):
                 S_test[:,i] = nnls(np.multiply(np.ones(self.model.A.shape) * self.W_test[:,i].reshape(-1,1),self.model.A), \
                                     np.multiply(self.W_test[:,i], self.test_features[:,i]))[0]
 
-        if self.modelNum == 5 or self.modelNum == 6: # I-divergence discrepancy measure on label data (use mult. upd. I-div)
+        if self.modelNum == 5 or self.modelNum == 6: # I-divergence discrepancy measure on features data (use mult. upd. I-div)
             S_test = np.random.rand(self.k, self.test_features.shape[1])
             for i in range(self.iter_s):
                 S_test = np.transpose(self.model.dictupdateIdiv(np.transpose(self.test_features), np.transpose(S_test), \
@@ -299,11 +299,11 @@ class Evaluation:
         train_evals, test_evals = eval_module.eval()
         self.cls_last = test_evals[-1]
 
-        print(f"Initial hyperparameters: k = {self.k}, iter = {self.numiters}, and lam = {self.lam}.")
-        print(f"Initial val total reconstruction error = {test_evals[0]}")
-        print(f"Initial val data reconstruction error = {test_evals[1]}")
-        print(f"Initial val classification error = {test_evals[2]}")
-        print(f"Initial val classification accuracy: {test_evals[3]}")
+        print("Initial hyperparameters: k = {}, iter = {}, and lam = {}.".format(self.k,self.numiters,self.lam))
+        print("Initial val total reconstruction error = {}".format(test_evals[0]))
+        print("Initial val data reconstruction error = {}".format(test_evals[1]))
+        print("Initial val classification error = {}".format(test_evals[2]))
+        print("Initial val classification accuracy: {}".format(test_evals[3]))
 
         while(not self.converged):
             # Perform a local search on k, itas, and lam
@@ -319,7 +319,7 @@ class Evaluation:
                     la_vals = np.concatenate((np.linspace(startl, endl, num=2), np.array([self.lam])), axis=0)
                     for la_idx in range(len(la_vals)):
                         la = la_vals[la_idx]
-                        print(f"Currently testing k = {k}, iteration = {it}, and lambda = {la}")
+                        print("Currently testing k = {}, iteration = {}, and lambda = {}".format(k,it,la))
                         eval_module = Evaluation(train_features = self.train_features,train_labels = self.train_labels,\
                                                 test_features = self.test_features, test_labels = self.test_labels,\
                                                 modelNum = self.modelNum, k = k, lam=la, numiters = it, \
@@ -353,10 +353,10 @@ class Evaluation:
                 if(self.iteration % 1 == 0):
                     print("Iteration:",self.iteration)
                     print("The new selection of hyperparameters: k =", self.k, "; iter =", self.numiters, "; lamb =", self.lam)
-                    print(f"Current val total reconstruction error = {test_evals[0]}")
-                    print(f"Current val data reconstruction error = {test_evals[1]}")
-                    print(f"Current val classification (div) error = {test_evals[2]}")
-                    print(f"Current val classification accuracy: {test_evals[3]}")
+                    print("Current val total reconstruction error = {}".format(test_evals[0]))
+                    print("Current val data reconstruction error = {}".format(test_evals[1]))
+                    print("Current val classification (div) error = {}".format(test_evals[2]))
+                    print("Current val classification accuracy: {}".format(test_evals[3]))
 
                 if self.k  < 2:
                     self.converged = True
@@ -377,7 +377,7 @@ class Evaluation:
                 print("Converged!")
                 print("The set of hyperparameters found at convergence were:")
                 print("k =", self.k, "; iter =", self.numiters, "; lam =", self.lam)
-                print(f"Final val classification accuracy: {self.cls_last}")
+                print("Final val classification accuracy: {}".format(self.cls_last))
 
 
         return self.lam, self.k, self.numiters

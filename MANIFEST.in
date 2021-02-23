@@ -19,3 +19,4 @@ include docs/Makefile docs/make.bat
 prune docs/_build
 
 graft src/ssnmf/data
+prune experiments
