@@ -138,24 +138,47 @@ def clustering_analysis(subcat_onehot, sub_names, S_dict, S_test_dict, median_di
             print("Topic {}: {} (score: {})".format(i_m+1,sub_names[I[i_m]],score_max[i_m]))
         print("Median SSNMF Model {} average score {}.\n\n".format(i,np.mean(score_max)))
 
-    # NMF Model
-    print("\n\nNMF Results:")
-    H_train_list = S_dict["NMF"]
-    H_test_list = S_test_dict["NMF"]
-    score_nmf_avg = []
-    for i_avg in range(len(H_train_list)):
-        H_train = H_train_list[i_avg]
-        H_test = H_test_list[i_avg]
+    # NMF models
+    for nmf_model in ["NMF", "I_NMF"]:
+        print("\n\n" + nmf_model + " Results:")
+        H_train_list = S_dict[nmf_model]
+        H_test_list = S_test_dict[nmf_model]
+        score_nmf_avg = []
+        for i_avg in range(len(H_train_list)):
+            H_train = H_train_list[i_avg]
+            H_test = H_test_list[i_avg]
+            H_model = np.concatenate((H_train, H_test), axis = 1)
+            score_max_nmf, I_nmf = clust_scores(M=subcat_onehot, S=H_model, clust = clust)
+            score_nmf_avg.append(np.mean(score_max_nmf))
+        print("Average " +nmf_model+ " Model score {}.".format(np.mean(score_nmf_avg)))
+
+        # NMF Median Results
+        H_train = S_dict[nmf_model][median_dict[nmf_model]]
+        H_test = S_test_dict[nmf_model][median_dict[nmf_model]]
         H_model = np.concatenate((H_train, H_test), axis = 1)
         score_max_nmf, I_nmf = clust_scores(M=subcat_onehot, S=H_model, clust = clust)
-        score_nmf_avg.append(np.mean(score_max_nmf))
-    print("Average NMF Model score {}.".format(np.mean(score_nmf_avg)))
+        for i_m in range(len(score_max_nmf)):
+            print("Topic {}: {} (score: {})".format(i_m+1,sub_names[I_nmf[i_m]],score_max_nmf[i_m]))
+        print("Median " + nmf_model + " model average score {}.".format(np.mean(score_max_nmf)))
 
-    # NMF Median Results
-    H_train = S_dict["NMF"][median_dict["NMF"]]
-    H_test = S_test_dict["NMF"][median_dict["NMF"]]
-    H_model = np.concatenate((H_train, H_test), axis = 1)
-    score_max_nmf, I_nmf = clust_scores(M=subcat_onehot, S=H_model, clust = clust)
-    for i_m in range(len(score_max_nmf)):
-        print("Topic {}: {} (score: {})".format(i_m+1,sub_names[I_nmf[i_m]],score_max_nmf[i_m]))
-    print("Median NMF model average score {}.".format(np.mean(score_max_nmf)))
+def dictupdateIdiv(Z, D, R, M, eps):
+    '''
+    multiplicitive update for D and R in D(Z||DR)
+    Parameters
+    ----------
+    Z   : array
+          Data matrix.
+    D   : array
+          Left factor matrix of Z.
+    R   : array
+          Right factor matrix of Z.
+    M   : array
+          Missing data indicator matrix of same size as Z (the defaults is matrix of all ones).
+    eps : float_, optional
+        Epsilon value to prevent division by zero (default is 1e-10).
+    Returns
+    -------
+    updated D or the transpose of updated R
+    '''
+    return np.multiply(np.divide(D, eps + M @ np.transpose(R)), \
+                       np.multiply(np.divide(np.multiply(M, Z), eps + np.multiply(M, D @ R)), M) @ np.transpose(R))

@@ -14,6 +14,7 @@ import pickle
 from statistics import mean
 from statistics import median
 from statistics import stdev
+from utils_20news import *
 
 class Methods:
 
@@ -107,7 +108,7 @@ class Methods:
 
         return svm_acc, svm_predicted
 
-    def NMF(self, rank, nmf_tol, print_results=0):
+    def NMF(self, rank, nmf_tol, beta_loss, print_results=0):
         """
         Run NMF on the TFIDF representation of documents to obtain a low-dimensional representaion (dim=rank),
         then apply SVM to classify the data.
@@ -116,6 +117,7 @@ class Methods:
             rank (int): input rank for NMF
             nmf_tol (float): tolerance for termanating NMF model
             print_results (boolean): 1: print classification report, heatmaps, and keywords, 0:otherwise
+            beta_loss (str): Beta divergence to be minimized (sklearn NMF parameter). Choose 'frobenius', or 'kullback-leibler'.
         Retruns:
              nmf_svm_acc (float): classification accuracy on test set
              W (ndarray): learnt word dictionary matrix, shape (words, topics)
@@ -127,16 +129,28 @@ class Methods:
         """
         self.nmf_tol = nmf_tol
 
-        print("\nRunning NMF + SVM")
-        nmf = NMF(n_components=rank, init= 'random', tol = self.nmf_tol, solver = 'mu', max_iter = 400)
+        print("\nRunning NMF (" + beta_loss + ") SVM")
 
         # TRAINING STEP
-        # Dictionary matrix, shape (vocabulary, topics)
-        W = nmf.fit_transform(self.X_train_full)
-        # Representation matrix, shape (topics, documents)
-        H = nmf.components_
-        # Actual number of iterations
-        nmf_iter = nmf.n_iter_
+        if beta_loss == "frobenius":
+            nmf = NMF(n_components=rank, init= 'random', tol = self.nmf_tol, beta_loss = beta_loss, solver = 'mu', max_iter = 400)
+            # Dictionary matrix, shape (vocabulary, topics)
+            W = nmf.fit_transform(self.X_train_full)
+            # Representation matrix, shape (topics, documents)
+            H = nmf.components_
+            # Actual number of iterations
+            nmf_iter = nmf.n_iter_
+
+        if beta_loss == "kullback-leibler":
+            nmf = NMF(n_components=rank, init= 'random', tol = self.nmf_tol, beta_loss = beta_loss, solver = 'mu', max_iter = 600)
+            # Dictionary matrix, shape (vocabulary, topics)
+            W = nmf.fit_transform(self.X_train_full)
+            # Representation matrix, shape (topics, documents)
+            H = nmf.components_
+            # Actual number of iterations
+            nmf_iter = nmf.n_iter_
+
+
         # Train SVM classifier on train data
         text_clf = Pipeline([('scl',StandardScaler()), \
                                 ('clf', SGDClassifier(tol=1e-5))])
@@ -144,9 +158,17 @@ class Methods:
 
         # TESTING STEP
         # Compute the representation of test data
-        H_test = np.zeros([rank, np.shape(self.X_test)[1]])
-        for i in range(np.shape(self.X_test)[1]):
-            H_test[:,i] = nnls(W, self.X_test[:,i])[0]
+        if beta_loss == "frobenius":
+            H_test = np.zeros([rank, np.shape(self.X_test)[1]])
+            for i in range(np.shape(self.X_test)[1]):
+                H_test[:,i] = nnls(W, self.X_test[:,i])[0]
+
+        if beta_loss == "kullback-leibler":
+            H_test = np.random.rand(rank, np.shape(self.X_test)[1])
+            for i in range(20):
+                H_test = np.transpose(dictupdateIdiv(Z = np.transpose(self.X_test), D = np.transpose(H_test), \
+                                       R = np.transpose(W), M = np.transpose(np.ones(self.X_test.shape)), eps= 1e-10))
+
         # Classify test data using trained SVM classifier
         nmf_svm_predicted = text_clf.predict(H_test.T)
         # Report classification accuracy on test data
@@ -238,13 +260,14 @@ class Methods:
         return test_evals, eval_module.model.A, eval_module.model.B, ssnmf_predicted, ssnmf_iter, S, S_test
 
 
-    def run_analysis(self, ssnmf_tol, nmf_tol, lamb, ka, itas, iterations, print_results=0, hyp_search=0):
+    def run_analysis(self, ssnmf_tol, nmf_tol, i_nmf_tol, lamb, ka, itas, iterations, print_results=0, hyp_search=0):
         """
         Compute and save all results for each iteration of each model.
 
         Args:
             ssnmf_tol (list): list of tolerance values for termanating SSNMF Models [3,4,5,6] respecitvely
-            nmf_tol (list): tolerance for termanating NMF model
+            nmf_tol (list): tolerance for termanating (frobenius) NMF model
+            i_nmf_tol (list): tolerance for termanating (divergence) NMF model
             lamb (list): list of regularization parameter of SSNMF Models [3,4,5,6] respecitvely
             ka (int): input rank for SSNMF
             itas (int): maximum number of multiplicative update iterations
@@ -265,13 +288,13 @@ class Methods:
         print("\nRunning analysis.")
 
         self.hyp_search = hyp_search
-        acc_dict = {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": [], "NB": [], "SVM": []}
-        A_dict= {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": []}
-        B_dict= {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": []}
-        S_dict= {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": []}
-        S_test_dict= {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": []}
-        Yhat_dict = {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": [], "NB": [], "SVM": []}
-        iter_dict = {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": []}
+        acc_dict = {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": [], "I_NMF": [], "NB": [], "SVM": []}
+        A_dict= {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": [], "I_NMF": []}
+        B_dict= {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": [], "I_NMF": []}
+        S_dict= {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": [], "I_NMF": []}
+        S_test_dict= {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": [], "I_NMF": []}
+        Yhat_dict = {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": [], "I_NMF": [], "NB": [], "SVM": []}
+        iter_dict = {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": [], "I_NMF": []}
 
         # Construct an evaluation module
         evalualtion_module = Methods(X_train = self.X_train, X_val = self.X_val, X_test = self.X_test,\
@@ -285,10 +308,11 @@ class Methods:
         acc_dict["NB"].append(nb_acc)
         Yhat_dict["NB"].append(nb_predicted)
 
+        # Run all other methods
         for j in range(iterations):
             print("Iteration {}.".format(j))
+            # Run SSNMF
             for i in range(3,7):
-                # Run SSNMF
                 test_evals, A, B, ssnmf_predicted, ssnmf_iter, S, S_test = evalualtion_module.SSNMF(modelNum = i, ssnmf_tol = ssnmf_tol[i-3],lamb = lamb[i-3],\
                                                                                         ka = ka, itas= itas, print_results = print_results, hyp_search = self.hyp_search)
                 acc_dict["Model" + str(i)].append(test_evals[-1])
@@ -299,20 +323,25 @@ class Methods:
                 Yhat_dict["Model" + str(i)].append(ssnmf_predicted)
                 iter_dict["Model" + str(i)].append(ssnmf_iter)
 
-            # Run NMF + SVM
-            nmf_svm_acc, W, nn_svm, nmf_svm_predicted, nmf_iter, H, H_test = evalualtion_module.NMF(rank=ka, nmf_tol= nmf_tol, print_results=print_results)
-            acc_dict["NMF"].append(nmf_svm_acc)
-            A_dict["NMF"].append(W)
-            B_dict["NMF"].append(nn_svm)
-            S_dict["NMF"].append(H)
-            S_test_dict["NMF"].append(H_test)
-            Yhat_dict["NMF"].append(nmf_svm_predicted)
-            iter_dict["NMF"].append(nmf_iter)
-
             # Run SVM
             svm_acc, svm_predicted = list(evalualtion_module.SVM())
             acc_dict["SVM"].append(svm_acc)
             Yhat_dict["SVM"].append(svm_predicted)
+
+            # Run NMF + SVM
+            for nmf_model in ["NMF", "I_NMF"]:
+                if nmf_model == "NMF":
+                    nmf_svm_acc, W, nn_svm, nmf_svm_predicted, nmf_iter, H, H_test = evalualtion_module.NMF(rank=ka, nmf_tol= nmf_tol, beta_loss = "frobenius", print_results=print_results)
+                if nmf_model == "I_NMF":
+                    nmf_svm_acc, W, nn_svm, nmf_svm_predicted, nmf_iter, H, H_test = evalualtion_module.NMF(rank=ka, nmf_tol= i_nmf_tol, beta_loss = "kullback-leibler", print_results=print_results)
+                acc_dict[nmf_model].append(nmf_svm_acc)
+                A_dict[nmf_model].append(W)
+                B_dict[nmf_model].append(nn_svm)
+                S_dict[nmf_model].append(H)
+                S_test_dict[nmf_model].append(H_test)
+                Yhat_dict[nmf_model].append(nmf_svm_predicted)
+                iter_dict[nmf_model].append(nmf_iter)
+
 
             # Save all dictionaries
             pickle.dump(acc_dict, open("acc_dict.pickle", "wb"))
@@ -331,6 +360,8 @@ class Methods:
             print("Model {} average accuracy: {:.4f} ± {:.4f}.".format(i,mean(acc),stdev(acc)))
         acc = acc_dict["NMF"]
         print("NMF average accuracy: {:.4f} ± {:.4f}.".format(mean(acc),stdev(acc)))
+        acc = acc_dict["I_NMF"]
+        print("I_NMF average accuracy: {:.4f} ± {:.4f}.".format(mean(acc),stdev(acc)))
         acc = acc_dict["NB"][0]
         print("NB accuracy: {:.4f}.".format(acc))
         acc = acc_dict["SVM"]
@@ -344,6 +375,8 @@ class Methods:
             print("Model {} average number of iterations: {:.2f}.".format(i,mean(iter_list)))
         iter_list = iter_dict["NMF"]
         print("NMF average number of iterations: {:.2f}.".format(mean(iter_list)))
+        iter_list = iter_dict["I_NMF"]
+        print("I_NMF average number of iterations: {:.2f}.".format(mean(iter_list)))
 
         # Find median performance for models
         print("\n\nPrinting median accuracy results...")
@@ -357,6 +390,10 @@ class Methods:
         acc = acc_dict["NMF"]
         median_dict["NMF"] = np.argsort(acc)[len(acc)//2]
         print("NMF median accuracy: {:.4f}.".format(median(acc)))
+
+        acc = acc_dict["I_NMF"]
+        median_dict["I_NMF"] = np.argsort(acc)[len(acc)//2]
+        print("I_NMF median accuracy: {:.4f}.".format(median(acc)))
 
         acc = acc_dict["NB"][0]
         print("NB accuracy: {:.4f}.".format(acc))
@@ -398,17 +435,18 @@ class Methods:
             print_keywords(A.T, features=self.feature_names_train, top_num=10)
             print("\nSSNMF Model {} number of iterations {}.\n".format(i,iter))
 
-        print("\nNMF results.\n")
-        W = A_dict["NMF"][median_dict["NMF"]]
-        nn_svm = B_dict["NMF"][median_dict["NMF"]]
-        nmf_svm_predicted = Yhat_dict["NMF"][median_dict["NMF"]]
-        iter = iter_dict["NMF"][median_dict["NMF"]]
-        print(metrics.classification_report(self.test_labels, nmf_svm_predicted, target_names=self.cls_names))
-        print_keywords(W.T, features=self.feature_names_train, top_num=10)
-        factors_heatmaps(nn_svm, cls_names=self.cls_names, save = True, filepath = 'NMF.png')
-        nn_svm_norm = nn_svm/nn_svm.sum(axis=0)[None,:]
-        factors_heatmaps(nn_svm_norm, cls_names=self.cls_names, save = True, filepath = 'NMF_Normalized.png')
-        print("\nNMF model number of iterations {}.\n".format(iter))
+        for nmf_model in ["NMF", "I_NMF"]:
+            print("\n" + nmf_model + "results.\n")
+            W = A_dict[nmf_model][median_dict[nmf_model]]
+            nn_svm = B_dict[nmf_model][median_dict[nmf_model]]
+            nmf_svm_predicted = Yhat_dict[nmf_model][median_dict[nmf_model]]
+            iter = iter_dict[nmf_model][median_dict[nmf_model]]
+            print(metrics.classification_report(self.test_labels, nmf_svm_predicted, target_names=self.cls_names))
+            print_keywords(W.T, features=self.feature_names_train, top_num=10)
+            factors_heatmaps(nn_svm, cls_names=self.cls_names, save = True, filepath = nmf_model + '.png')
+            nn_svm_norm = nn_svm/nn_svm.sum(axis=0)[None,:]
+            factors_heatmaps(nn_svm_norm, cls_names=self.cls_names, save = True, filepath = nmf_model + '_Normalized.png')
+            print("\n" +  nmf_model + " model number of iterations {}.\n".format(iter))
 
         print("\nNB results.\n")
         nb_predicted = Yhat_dict["NB"][0]
