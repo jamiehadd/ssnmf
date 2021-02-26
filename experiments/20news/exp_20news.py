@@ -66,42 +66,52 @@ if run_analysis == 1:
     lamb = [1e+2,1e+1,1e+2,1e+3]
     # "Optimal" NMF parameters
     nmf_tol = 1e-4
+    i_nmf_tol = 1e-5
 
     # Run SSNMF Analysis
     acc_dict, A_dict, B_dict, S_dict, S_test_dict, Yhat_dict, median_dict, iter_dict = evalualtion_module.run_analysis(ssnmf_tol= ssnmf_tol, \
-                                                                    nmf_tol = nmf_tol, lamb=lamb, ka=rank, itas=50, iterations=iterations)
+                                                                    nmf_tol = nmf_tol, i_nmf_tol = i_nmf_tol, lamb=lamb, ka=rank, itas=50, iterations=iterations)
 
     evalualtion_module.median_results(acc_dict, A_dict, B_dict, Yhat_dict, median_dict, iter_dict)
 
 
 if nmf_search == 1:
     """ Run NMF for various tolerance values."""
-    mean_acc = []
-    std_acc = []
     tol_list = [1e-5,1e-4,1e-3,1e-2]
 
-    for tol_idx in range(len(tol_list)):
-        nmf_acc = []
-        nmf_tol = tol_list[tol_idx]
-        print("Testing tolerance equal to {}.".format(nmf_tol))
-        # Construct an evaluation module
-        evalualtion_module = Methods(X_train = X_train, X_val = X_val, X_test = X_val,\
-                                train_labels = train_labels, val_labels = val_labels,\
-                                test_labels = val_labels, X_train_full = X_train,\
-                                train_labels_full = train_labels, cls_names = cls_names,\
-                                feature_names_train=feature_names_train)
+    for nmf_model in ["NMF", "I_NMF"]:
+        mean_acc = []
+        std_acc = []
 
-        for j in range(iterations):
-            print("Iteration {}.".format(j))
-            nmf_svm_acc, W, nn_svm, nmf_svm_predicted, nmf_iter, H, H_test = evalualtion_module.NMF(rank=rank, nmf_tol=nmf_tol)
-            nmf_acc.append(nmf_svm_acc)
+        for tol_idx in range(len(tol_list)):
+            nmf_acc = []
+            nmf_tol = tol_list[tol_idx]
+            print("Testing tolerance equal to {}.".format(nmf_tol))
+            # Construct an evaluation module
+            evalualtion_module = Methods(X_train = X_train, X_val = X_val, X_test = X_val,\
+                                    train_labels = train_labels, val_labels = val_labels,\
+                                    test_labels = val_labels, X_train_full = X_train,\
+                                    train_labels_full = train_labels, cls_names = cls_names,\
+                                    feature_names_train=feature_names_train)
 
-        mean_acc.append(mean(nmf_acc))
-        std_acc.append(stdev(nmf_acc))
+            if nmf_model == "NMF":
+                for j in range(iterations):
+                    print("Iteration {}.".format(j))
+                    nmf_svm_acc, W, nn_svm, nmf_svm_predicted, nmf_iter, H, H_test = evalualtion_module.NMF(rank=rank, nmf_tol=nmf_tol, beta_loss = "frobenius")
+                    nmf_acc.append(nmf_svm_acc)
 
-    print("\n\nResults for {} iterations.\n".format(iterations))
-    for tol_idx in range(len(tol_list)):
-        print("NMF average accuracy (with tol = {}): {:.4f} ± {:.4f}.".format(tol_list[tol_idx],mean_acc[tol_idx],std_acc[tol_idx]))
+            if nmf_model == "I_NMF":
+                for j in range(iterations):
+                    print("Iteration {}.".format(j))
+                    nmf_svm_acc, W, nn_svm, nmf_svm_predicted, nmf_iter, H, H_test = evalualtion_module.NMF(rank=rank, nmf_tol=nmf_tol, beta_loss = "kullback-leibler")
+                    nmf_acc.append(nmf_svm_acc)
+
+            mean_acc.append(mean(nmf_acc))
+            std_acc.append(stdev(nmf_acc))
+
+        print("\n\nResults for {} iterations.\n".format(iterations))
+        for tol_idx in range(len(tol_list)):
+            print(nmf_model + " average accuracy (with tol = {}): {:.4f} ± {:.4f}.".format(tol_list[tol_idx],mean_acc[tol_idx],std_acc[tol_idx]))
 
 
 if ssnmf_search == 1:
