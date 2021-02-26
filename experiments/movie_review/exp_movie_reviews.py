@@ -28,9 +28,9 @@ np.random.seed(1)
 
 # ------------ PARAMETERS ------------------------------------------------
 rank = 13 # (int) input rank for NMF and (S)SNMF models
-iterations = 3 # (odd int) number of iterations to run for analysis
+iterations = 11 # (odd int) number of iterations to run for analysis
 nmf_search = 1 # (boolean) run for various tolerance values
-ssnmf_search = 0 # (boolean) run for various tolerances and regularizers 
+ssnmf_search = 1 # (boolean) run for various tolerances and regularizers 
 Run_Linear_regression = 1 # (boolean) run linear regression on the TFIDF representation of documents
 # ------------------------------------------------------------------------
 
@@ -41,7 +41,7 @@ Run_Linear_regression = 1 # (boolean) run linear regression on the TFIDF represe
 ## ratings to float for our regression problem
 
 ## Path to data
-path = 'scale_data/scaledata'
+path = './experiments/movie_review/scale_data/scaledata'
 list_dir = os.listdir(path)
 
 reviews_list = list() ## A list of all reviews
@@ -182,7 +182,7 @@ if Run_Linear_regression == 1:
 # ------------------------------------------------------------------------
 if nmf_search == 1:
     """ Run NMF for various tolerance values."""
-    tol_list = [1e-5,1e-4]
+    tol_list = [1e-5,1e-4,1e-3,1e-2]
 
     for nmf_model in ["NMF", "I_NMF"]:
         mean_acc = []
