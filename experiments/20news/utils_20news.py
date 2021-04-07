@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 plt.ion()
 
 def top_features(classifier, feature_names, cls_names, top_num):
@@ -68,6 +69,32 @@ def TopicVsDoc(S):
             topics_doc[max_index,i] = 1
 
     return topics_doc
+
+def regression_metrics(true_target, pred_target):
+        '''
+        This function evaluates the regression model with various metrics.
+        Args:
+            true_target(ndarray): true targets, shape (1, n_samples) or (n_samples, 1) or (n_samples,)
+            pred_target(ndarray): predicted targets, shape (1, n_samples) or (n_samples, 1) or (n_samples,)
+
+        Returns:
+            r2_val(float): R-squared value of regeression model
+            mse_val(float): Mean Squared Error of regeression model
+            mae_val(float): Mean Absolute Error of regeression model
+
+        '''
+        true_target = np.squeeze(true_target)
+        pred_target = np.squeeze(pred_target)
+
+        r2_val = r2_score(true_target, pred_target)
+        mse_val = mean_squared_error(true_target, pred_target)
+        mae_val = mean_absolute_error(true_target, pred_target)
+
+        print("\nR-sq value is {:.5f}.".format(r2_val))
+        print("MSE is {:.5f}.".format(mse_val))
+        print("MAE is {:.5f}.\n".format(mae_val))
+
+        return r2_val, mse_val, mae_val
 
 def clust_scores(M, S, clust):
     """
