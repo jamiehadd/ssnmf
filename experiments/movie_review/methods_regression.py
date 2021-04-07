@@ -7,15 +7,18 @@ Created on Tue Feb 23 12:25:12 2021
 """
 import sys
 #import ssnmf
+import pickle
 sys.path.insert(0,'./src/')
 from ssnmf.evaluation  import Evaluation
 import numpy as np
+from statistics import mean
 from sklearn.linear_model import LinearRegression
 from sklearn.decomposition import NMF
 from scipy.optimize import nnls as nnls
 sys.path.insert(0,'./experiments/20news/')
 # import utils_20news
 from utils_20news import *
+from sklearn.metrics import r2_score, mean_squared_error
 
 class Methods:
 
@@ -41,7 +44,7 @@ class Methods:
         self.y_val = y_val
         self.X_train_full = X_train_full
         self.y_train_full = y_train_full
-        
+
     def SSNMF(self, modelNum, ssnmf_tol, lamb, ka, itas):
         """
         Run (S)SNMF on the TFIDF representation of documents.
@@ -52,27 +55,19 @@ class Methods:
             ka (int): input rank for SSNMF
             itas (int): maximum number of multiplicative update iterations
         Retruns:
-            test_evals(list): [float(total reconstruction error (model objective function) on test data),
-                                    float(data reconstruction error on test data),
-                                    float(label reconstruction error on test data),
-                                    float(classification accuracy on test data)]
-            eval_module.model.A (ndarray): learnt word dictionary matrix for data reconstruction, shape (words, topics)
-            eval_module.model.B (ndarray): learnt dictionary matrix for classification, shape (classes, topics)
             ssnmf_predicted (ndarray): predicted labels for data points in test set
             ssnmf_iter (int): actual number of iterations of SSNMF model
-            S (ndarray): document representation matrix for train set, shape (topics, train + test documents)
-            S_test (ndarray): document representation matrix for test set, shape (topics, test documents)
         """
 
         print("\nRunning SSNMF for Model {}.".format(modelNum))
         self.ssnmf_tol = ssnmf_tol
         self.modelNum = modelNum
 
-       
+
         self.opt_ka = ka
         self.opt_lamb = lamb
         self.opt_itas = itas
-        
+
         eval_module = Evaluation(train_features = self.X_train_full,
                                  train_labels = self.y_train_full,
                                  test_features = self.X_test, test_labels = self.y_test, tol = self.ssnmf_tol,
@@ -80,29 +75,28 @@ class Methods:
 
         train_evals, test_evals = eval_module.eval()
         ssnmf_iter = len(train_evals[0])
-
-
         ssnmf_predicted = eval_module.model.B@eval_module.S_test
 
-        S = eval_module.model.S
-        S_test = eval_module.S_test
+        return ssnmf_predicted, ssnmf_iter
 
-        return test_evals[:-1], eval_module.model.A, eval_module.model.B, ssnmf_predicted, ssnmf_iter, S, S_test
     def Linear_regression(self):
-        
+
         """
         Run Linear Regression on the TFIDF representation of documents.
         Retruns:
             y_test_pred (ndarray): predicted outcome for data points in test set
         """
         print("\nRunning Linear Regression.")
-        
+
         LR_model = LinearRegression(fit_intercept=True)
         y = np.squeeze(self.y_train_full)
         X = self.X_train_full.T
         LR_model.fit(X, y)
         y_test_pred = LR_model.predict(self.X_test.T)
-        return y_test_pred   
+        #y_test_pred = np.around(y_test_pred, decimals=1)
+
+        return y_test_pred
+
     def NMF(self, rank, nmf_tol, beta_loss):
         """
         Run NMF on the TFIDF representation of documents to obtain a low-dimensional representaion (dim=rank),
@@ -120,7 +114,7 @@ class Methods:
         """
         self.nmf_tol = nmf_tol
 
-        print("\nRunning NMF (" + beta_loss + ") Linear Regression")
+        print("\nRunning NMF (" + beta_loss + ") + Linear Regression")
 
         # TRAINING STEP
         if beta_loss == "frobenius":
@@ -133,7 +127,7 @@ class Methods:
             nmf_iter = nmf.n_iter_
 
         if beta_loss == "kullback-leibler":
-            nmf = NMF(n_components=rank, init= 'random', tol = self.nmf_tol, beta_loss = beta_loss, solver = 'mu', max_iter = 600)
+            nmf = NMF(n_components=rank, init= 'random', tol = self.nmf_tol, beta_loss = beta_loss, solver = 'mu', max_iter = 700)
             # Dictionary matrix, shape (vocabulary, topics)
             W = nmf.fit_transform(self.X_train_full)
             # Representation matrix, shape (topics, documents)
@@ -141,13 +135,10 @@ class Methods:
             # Actual number of iterations
             nmf_iter = nmf.n_iter_
 
-
         # Train linear regression on train data
         LR_model = LinearRegression(fit_intercept=True)
-        y = np.squeeze(self.y_train_full)
-        X = H.T
-        LR_model.fit(X, y)
-        
+        LR_model.fit(H.T, np.squeeze(self.y_train_full))
+
         # TESTING STEP
         # Compute the representation of test data
         if beta_loss == "frobenius":
@@ -164,4 +155,90 @@ class Methods:
         # Predict test outcomes using trained linear regression model
         nmf_LR_predicted = LR_model.predict(H_test.T)
 
-        return W, nmf_LR_predicted, nmf_iter, H, H_test
+        return nmf_LR_predicted, nmf_iter
+
+    def run_analysis(self, ssnmf_tol, nmf_tol, i_nmf_tol, lamb, ka, itas, iterations):
+        """
+        Compute and save all results for each iteration of each model.
+
+        Args:
+            ssnmf_tol (list): list of tolerance values for termanating SSNMF Models [3,4,5,6] respecitvely
+            nmf_tol (list): tolerance for termanating (frobenius) NMF model
+            i_nmf_tol (list): tolerance for termanating (divergence) NMF model
+            lamb (list): list of regularization parameter of SSNMF Models [3,4,5,6] respecitvely
+            ka (int): input rank for SSNMF
+            itas (int): maximum number of multiplicative update iterations
+            iterations (int): (odd) number of iterations to run for analysis
+
+        Returns:
+            r2_dict (dictionary): for each model, test R-squared value for each iteration (list)
+            iter_dict (dictionary): for each model, number of multiplicative updates for each iteration (list) (if applicable)
+        """
+        print("\nRunning analysis.")
+
+        r2_dict = {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": [], "I_NMF": [], "LR": []}
+        iter_dict = {"Model3": [], "Model4": [], "Model5": [], "Model6": [], "NMF": [], "I_NMF": []}
+
+        # Construct an evaluation module
+        evalualtion_module = Methods(X_train = self.X_train, X_val = self.X_val, X_test = self.X_test,\
+                                y_train = self.y_train, y_val = self.y_val,\
+                                y_test = self.y_test, X_train_full = self.X_train_full,\
+                                y_train_full = self.y_train_full)
+
+        # Run all methods
+        for j in range(iterations):
+            print("Iteration {}.".format(j))
+            # Run SSNMF
+            for i in range(3,7):
+                ssnmf_predicted, ssnmf_iter = evalualtion_module.SSNMF(modelNum = i, ssnmf_tol = ssnmf_tol[i-3],lamb = lamb[i-3], ka = ka, itas= itas)
+                ssnmf_r2, ssnmf_mse, ssnmf_mae  = regression_metrics(self.y_test, ssnmf_predicted)
+                r2_dict["Model" + str(i)].append(ssnmf_r2)
+                iter_dict["Model" + str(i)].append(ssnmf_iter)
+
+            # Run LR
+            lr_pred = evalualtion_module.Linear_regression()
+            lr_r2, lr_mse, lr_mae  = regression_metrics(self.y_test, lr_pred)
+            r2_dict["LR"].append(lr_r2)
+
+            # Run NMF + LR
+            for nmf_model in ["NMF", "I_NMF"]:
+                if nmf_model == "NMF":
+                    nmf_LR_predicted, nmf_iter = evalualtion_module.NMF(rank=ka, nmf_tol= nmf_tol, beta_loss = "frobenius")
+                if nmf_model == "I_NMF":
+                    nmf_LR_predicted, nmf_iter = evalualtion_module.NMF(rank=ka, nmf_tol= i_nmf_tol, beta_loss = "kullback-leibler")
+
+                nmf_r2, nmf_mse, nmf_mae  = regression_metrics(self.y_test, nmf_LR_predicted)
+                r2_dict[nmf_model].append(nmf_r2)
+                iter_dict[nmf_model].append(nmf_iter)
+
+            # Save all dictionaries
+            pickle.dump(r2_dict, open("r2_dict.pickle", "wb"))
+            pickle.dump(iter_dict, open("iter_dict.pickle", "wb"))
+
+        # Report average performance for models
+        print("\n\nPrinting mean R-squared values ...")
+        print("---------------------------------------\n")
+        for i in range(3,7):
+            r2 = r2_dict["Model" + str(i)]
+            print("Model {} average R-square value: {:.4f}.".format(i,mean(r2)))
+        r2 = r2_dict["NMF"]
+        print("NMF average R-square value: {:.4f}.".format(mean(r2)))
+        r2 = r2_dict["I_NMF"]
+        print("I_NMF average R-square value: {:.4f}.".format(mean(r2)))
+        r2 = r2_dict["LR"]
+        print("LR average R-square value: {:.4f}.".format(mean(r2)))
+
+        # Report average number of iterations (mult. updates) for models
+        print("\n\nPrinting mean number of iterations (multiplicative updates)...")
+        print("----------------------------------------------------------------\n")
+        for i in range(3,7):
+            iter_list = iter_dict["Model" + str(i)]
+            print("Model {} average number of iterations: {:.2f}.".format(i,mean(iter_list)))
+        iter_list = iter_dict["NMF"]
+        print("NMF average number of iterations: {:.2f}.".format(mean(iter_list)))
+        iter_list = iter_dict["I_NMF"]
+        print("I_NMF average number of iterations: {:.2f}.".format(mean(iter_list)))
+
+        pickle.dump([ssnmf_tol, nmf_tol, lamb, ka, itas, iterations], open("movie_param_list.pickle", "wb"))
+
+        return r2_dict, iter_dict
